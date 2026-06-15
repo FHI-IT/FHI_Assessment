@@ -141,6 +141,21 @@ T_STATUS  = "CLAPA_tbl_PA_Quote_Status"
 T_LOG     = "assessment_log"
 ENGINE_VERSION = "v6.1"
 
+def _get_logged_in_display_name():
+    """
+    Returns a clean display name for the logged-in Streamlit Cloud user.
+    Converts e.g. 'hoosh.mires@freedomhealthnet.co.uk' -> 'Hoosh Mires'.
+    Returns empty string if no user info is available.
+    """
+    try:
+        u = getattr(st, "user", None) or getattr(st, "experimental_user", None)
+        email = getattr(u, "email", None) if u else None
+        if not email:
+            return ""
+        username = email.split("@")[0]
+        return " ".join(p.capitalize() for p in username.replace("_", ".").split("."))
+    except Exception:
+        return ""
 
 def clean_nans(obj):
     if isinstance(obj, dict):
@@ -315,8 +330,8 @@ def render_check(c):
 # ── Main UI ────────────────────────────────────────────────────────────────────
 def main():
     client = get_client()
-    if "reviewer_name" not in st.session_state:
-        st.session_state["reviewer_name"] = "Unknown"
+if "reviewer_name" not in st.session_state or not st.session_state.get("reviewer_name"):
+        st.session_state["reviewer_name"] = _get_logged_in_display_name()
 
     # Header
     logo_path = Path(__file__).parent / "logo.png"
@@ -789,15 +804,15 @@ def main():
                                               value=float(sug_m) if sug_m else 0.0, key=f"fm_{sel_qno}")
                 use_override_prem = st.checkbox("Use these values in the audit record", key=f"use_prem_{sel_qno}")
 
-            override_reason = ""
-            pending = st.session_state.get(f"pending_decision_{sel_qno}")
-            if pending and pending != rec:
-                override_reason = st.text_area(
-                    f"⚠️ You are overriding the system recommendation ({rec}). Please provide a reason (required):",
-                    key=f"reason_{sel_qno}",
-                )
+# ── Override reason — always visible so it's available before the click ──
+            override_reason = st.text_area(
+                "Override reason — required only if your decision differs from the system recommendation:",
+                key=f"reason_{sel_qno}",
+                height=80,
+                placeholder="e.g. 'Senior UW authorised'; 'Additional broker context received'; ..."
+            )
 
-            # Brand the primary decision button (the one matching the recommendation) in FHI magenta
+            # ── Brand the primary decision button (matches recommendation) in FHI magenta ──
             st.markdown("""
                 <style>
                   div[data-testid="stButton"] > button[kind="primary"] {
@@ -818,40 +833,50 @@ def main():
                   }
                 </style>
             """, unsafe_allow_html=True)
-            
-            dcols = st.columns(3)
-            if dcols[0].button("✅ Confirm & Release", key=f"btn_release_{sel_qno}", use_container_width=True,
-                               type="primary" if rec == "RELEASE" else "secondary"):
-                st.session_state[f"pending_decision_{sel_qno}"] = "RELEASE"
-                if rec == "RELEASE" or override_reason:
-                    record_reviewer_decision(client, ref_id, "RELEASE", rec, override_reason,
-                                             final_a if use_override_prem else sug_a,
-                                             final_m if use_override_prem else sug_m)
+
+            def _attempt_decision(decision):
+                """One-click decision recording. Override requires reason, otherwise shows warning."""
+                reason = (override_reason or "").strip()
+                is_override = (decision != rec)
+                if is_override and not reason:
+                    st.warning(
+                        f"⚠️ You are overriding the system recommendation ({rec} → {decision}). "
+                        "Please type a reason in the box above, then click the button again."
+                    )
+                    return
+                record_reviewer_decision(
+                    client, ref_id, decision, rec,
+                    override_reason=reason if is_override else "",
+                    final_annual=(final_a if use_override_prem else sug_a),
+                    final_monthly=(final_m if use_override_prem else sug_m),
+                )
+                # Feedback to the reviewer
+                if decision == "RELEASE":
                     st.success(f"✅ RELEASE recorded. Reference: **{ref_id}**")
                     st.balloons()
-                    st.rerun()
-                else:
-                    st.warning("This overrides the system recommendation. Please provide a reason above.")
-
-            if dcols[1].button("⚠️ Confirm & Refer", key=f"btn_refer_{sel_qno}", use_container_width=True,
-                               type="primary" if rec == "REFER" else "secondary"):
-                st.session_state[f"pending_decision_{sel_qno}"] = "REFER"
-                if rec == "REFER" or override_reason:
-                    record_reviewer_decision(client, ref_id, "REFER", rec, override_reason)
+                elif decision == "REFER":
                     st.warning(f"⚠️ REFER recorded. Reference: **{ref_id}**")
-                    st.rerun()
                 else:
-                    st.warning("This overrides the system recommendation. Please provide a reason above.")
-
-            if dcols[2].button("❌ Confirm & Decline", key=f"btn_decline_{sel_qno}", use_container_width=True,
-                               type="primary" if rec == "DECLINE" else "secondary"):
-                st.session_state[f"pending_decision_{sel_qno}"] = "DECLINE"
-                if rec == "DECLINE" or override_reason:
-                    record_reviewer_decision(client, ref_id, "DECLINE", rec, override_reason)
                     st.error(f"❌ DECLINE recorded. Reference: **{ref_id}**")
-                    st.rerun()
-                else:
-                    st.warning("This overrides the system recommendation. Please provide a reason above.")
+                # Clear the selection so the queue refreshes and the user sees the quote disappear
+                st.session_state.pop("selected_quote_no", None)
+                st.rerun()
+
+            dcols = st.columns(3)
+            if dcols[0].button("✅ Confirm & Release", key=f"btn_release_{sel_qno}",
+                               use_container_width=True,
+                               type="primary" if rec == "RELEASE" else "secondary"):
+                _attempt_decision("RELEASE")
+
+            if dcols[1].button("⚠️ Confirm & Refer", key=f"btn_refer_{sel_qno}",
+                               use_container_width=True,
+                               type="primary" if rec == "REFER" else "secondary"):
+                _attempt_decision("REFER")
+
+            if dcols[2].button("❌ Confirm & Decline", key=f"btn_decline_{sel_qno}",
+                               use_container_width=True,
+                               type="primary" if rec == "DECLINE" else "secondary"):
+                _attempt_decision("DECLINE")
 
         with st.sidebar:
             st.markdown("### Settings")
