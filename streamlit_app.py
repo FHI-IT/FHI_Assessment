@@ -238,6 +238,24 @@ def fetch_data():
     assessments.sort(key=lambda x: x.get("DateEntered", ""), reverse=True)
     return assessments, detail
 
+def get_decided_quote_ids(client, quote_nos):
+    """
+    Returns the set of quote_no values that already have a reviewer_decision recorded.
+    Used to filter decided quotes out of the visible queue.
+    """
+    if not quote_nos:
+        return set()
+    try:
+        result = (
+            client.from_(T_LOG)
+                  .select("quote_no")
+                  .in_("quote_no", quote_nos)
+                  .not_.is_("reviewer_decision", "null")
+                  .execute()
+        )
+        return {r["quote_no"] for r in (result.data or [])}
+    except Exception:
+        return set()
 
 def generate_reference_id(quote_no: int) -> str:
     suffix = "".join(random.choices(string.ascii_uppercase + string.digits, k=4))
@@ -360,11 +378,25 @@ if "reviewer_name" not in st.session_state or not st.session_state.get("reviewer
         "manual checks listed at the bottom of each quote."
     )
 
-    with st.spinner("Loading live data from Supabase…"):
+with st.spinner("Loading live data from Supabase…"):
         assessments, detail = fetch_data()
 
+    # ── Filter out quotes that already have a recorded reviewer decision ──
+    n_decided_recently = 0
+    if assessments:
+        quote_nos = [a["QuoteNo"] for a in assessments]
+        decided_ids = get_decided_quote_ids(client, quote_nos)
+        n_decided_recently = len(decided_ids)
+        assessments = [a for a in assessments if a["QuoteNo"] not in decided_ids]
+
     if not assessments:
-        st.warning("No new-business quotes currently awaiting assessment.")
+        if n_decided_recently:
+            st.success(
+                f"All {n_decided_recently} new-business quote(s) in the queue have been actioned. "
+                "Queue is currently empty."
+            )
+        else:
+            st.warning("No new-business quotes currently awaiting assessment.")
         return
 
     n_release = sum(1 for a in assessments if a["recommendation"] == "RELEASE")
