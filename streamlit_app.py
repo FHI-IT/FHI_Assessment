@@ -372,25 +372,44 @@ def main():
                 st.session_state["selected_quote_no"] not in opts:
             st.session_state["selected_quote_no"] = list(opts.keys())[0] if opts else None
 
+# ── Queue list — compact selectable cards ──────────────────────────────
         for a in visible:
             qno = a["QuoteNo"]
             rec = a["recommendation"]
             badge_color = {"RELEASE": "#2a9d8f", "REFER": "#e9c46a", "DECLINE": "#e76f51"}.get(rec, "#aaa")
-            bg = "#f0f4ff" if st.session_state.get("selected_quote_no") == qno else "white"
+            is_selected = st.session_state.get("selected_quote_no") == qno
+            bg = "#f0f4ff" if is_selected else "white"
             avg_age = a.get("AvgMemberAge")
-            st.markdown(
-                f'<div style="background:{bg};border-radius:8px;padding:10px 14px;'
-                f'margin-bottom:6px;border-left:4px solid {badge_color};box-shadow:0 1px 3px rgba(0,0,0,0.07)">'
-                f'<div style="display:flex;justify-content:space-between;align-items:center">'
-                f'<strong style="font-size:0.9rem;color:#282f4b">{a.get("QuoteName","—")}</strong>'
-                f'<span style="background:{badge_color};color:white;padding:2px 8px;border-radius:12px;font-size:0.72rem;font-weight:700">{rec}</span>'
-                f'</div><div style="font-size:0.78rem;color:#888;margin-top:3px">'
-                f'#{qno} · {a.get("NumMembers","?")} mbrs · {f"avg {avg_age:.1f}" if avg_age else ""} · {a.get("Broker","")[:28]}'
-                f'</div><div style="font-size:0.82rem;color:#282f4b;font-weight:700;margin-top:2px">'
-                f'{fmt_money(a.get("OurAnnual"))}/yr</div></div>',
-                unsafe_allow_html=True,
+            avg_age_str = f"avg {avg_age:.1f}" if avg_age else ""
+            mbrs = a.get("NumMembers", "?")
+            broker_short = (a.get("Broker") or "")[:32]
+            our_annual = fmt_money(a.get("OurAnnual"))
+
+            # The clickable card itself — uses a hidden Streamlit button so the
+            # whole card area becomes the click target.
+            card_html = (
+                f'<div style="background:{bg};border-radius:8px;padding:9px 12px;'
+                f'margin-bottom:5px;border-left:4px solid {badge_color};'
+                f'box-shadow:0 1px 2px rgba(0,0,0,0.05);cursor:pointer">'
+                f'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
+                f'<strong style="font-size:0.88rem;color:#282f4b;'
+                f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">'
+                f'{a.get("QuoteName","—")}</strong>'
+                f'<span style="background:{badge_color};color:white;padding:1px 7px;'
+                f'border-radius:10px;font-size:0.66rem;font-weight:700;letter-spacing:0.04em;'
+                f'flex-shrink:0">{rec}</span></div>'
+                f'<div style="font-size:0.72rem;color:#888;margin-top:2px;'
+                f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+                f'#{qno} · {mbrs} mbrs · {avg_age_str} · {broker_short}</div>'
+                f'<div style="font-size:0.8rem;color:#282f4b;font-weight:700;margin-top:1px">'
+                f'{our_annual}/yr</div></div>'
             )
-            if st.button("View →", key=f"sel_{qno}"):
+            st.markdown(card_html, unsafe_allow_html=True)
+
+            # Invisible-feeling button — small, full-width, transparent label
+            # Streamlit doesn't allow truly-invisible clickable divs, so we use
+            # a thin button rendered just below the card.
+            if st.button("Select this quote", key=f"sel_{qno}", use_container_width=True):
                 st.session_state["selected_quote_no"] = qno
                 for k in ["pending_decision", "override_reason", "final_annual", "final_monthly"]:
                     st.session_state.pop(k, None)
