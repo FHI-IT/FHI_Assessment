@@ -356,23 +356,31 @@ def assess_quote(q, m_sub, c_sub):
         result['CreatorLicence'] = None
         result['CreatorMaxPremium'] = None
 
-    # §12 Release Quote suggested price — independent monthly & annual
-    if our_annual and ren_annual and fhi_base:
-        a_agg = ren_annual * 0.80
-        a_cap = fhi_base * 0.90
-        a_sug = max(a_agg, a_cap)
-        result['SuggestedRelease_Annual']            = round(a_sug, 2)
-        result['SuggestedRelease_Annual_Aggressive'] = round(a_agg, 2)
-        result['SuggestedRelease_Annual_Cap']        = round(a_cap, 2)
-        result['SuggestedRelease_Annual_Binding']    = 'R-20%' if a_agg >= a_cap else 'FHI base -10% cap'
+# ===== §12 Release Quote suggested price =====
+    # The monthly figure is the un-discounted house reference. The annual figure is
+    # derived from monthly by applying FHI's standard 6% annual-payment discount.
+    # This guarantees monthly × 12 > annual — matching how FHI invoices clients.
+    FHI_ANNUAL_DISCOUNT = 0.06
+    fhi_monthly_base = our_monthly / (1 - discount/100) if (our_monthly and discount and discount > 0) else our_monthly
+
     if our_monthly and ren_monthly and fhi_monthly_base:
-        m_agg = ren_monthly * 0.80
-        m_cap = fhi_monthly_base * 0.90
-        m_sug = max(m_agg, m_cap)
-        result['SuggestedRelease_Monthly']            = round(m_sug, 2)
-        result['SuggestedRelease_Monthly_Aggressive'] = round(m_agg, 2)
+        m_aggressive = ren_monthly * 0.80           # R−20% (monthly)
+        m_cap        = fhi_monthly_base * 0.90      # FHI base −10% (monthly)
+        m_suggested  = max(m_aggressive, m_cap)
+        binding      = 'R-20%' if m_aggressive >= m_cap else 'FHI base -10% cap'
+
+        result['SuggestedRelease_Monthly']            = round(m_suggested, 2)
+        result['SuggestedRelease_Monthly_Aggressive'] = round(m_aggressive, 2)
         result['SuggestedRelease_Monthly_Cap']        = round(m_cap, 2)
-        result['SuggestedRelease_Monthly_Binding']    = 'R-20%' if m_agg >= m_cap else 'FHI base -10% cap'
+        result['SuggestedRelease_Monthly_Binding']    = binding
+
+        # Derive annual figures from monthly using FHI's 6% annual-payment discount.
+        # Same binding rule applies — annual is just the monthly result × 12 × 0.94.
+        annual_factor = 12 * (1 - FHI_ANNUAL_DISCOUNT)
+        result['SuggestedRelease_Annual']            = round(m_suggested  * annual_factor, 2)
+        result['SuggestedRelease_Annual_Aggressive'] = round(m_aggressive * annual_factor, 2)
+        result['SuggestedRelease_Annual_Cap']        = round(m_cap        * annual_factor, 2)
+        result['SuggestedRelease_Annual_Binding']    = binding
 
     if result['EliteLondonHospitals']:
         result['checks'].append({'rule': 'London hospitals selected (+35%)', 'ref': '§6', 'status': 'info', 'detail': 'Loading applies'})
