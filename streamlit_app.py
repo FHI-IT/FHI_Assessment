@@ -141,6 +141,7 @@ T_STATUS  = "CLAPA_tbl_PA_Quote_Status"
 T_LOG     = "assessment_log"
 ENGINE_VERSION = "v6.1"
 
+
 def _get_logged_in_display_name():
     """
     Returns a clean display name for the logged-in Streamlit Cloud user.
@@ -156,6 +157,7 @@ def _get_logged_in_display_name():
         return " ".join(p.capitalize() for p in username.replace("_", ".").split("."))
     except Exception:
         return ""
+
 
 def clean_nans(obj):
     if isinstance(obj, dict):
@@ -238,6 +240,7 @@ def fetch_data():
     assessments.sort(key=lambda x: x.get("DateEntered", ""), reverse=True)
     return assessments, detail
 
+
 def get_decided_quote_ids(client, quote_nos):
     """
     Returns the set of quote_no values that already have a reviewer_decision recorded.
@@ -256,6 +259,7 @@ def get_decided_quote_ids(client, quote_nos):
         return {r["quote_no"] for r in (result.data or [])}
     except Exception:
         return set()
+
 
 def generate_reference_id(quote_no: int) -> str:
     suffix = "".join(random.choices(string.ascii_uppercase + string.digits, k=4))
@@ -348,7 +352,7 @@ def render_check(c):
 # ── Main UI ────────────────────────────────────────────────────────────────────
 def main():
     client = get_client()
-if "reviewer_name" not in st.session_state or not st.session_state.get("reviewer_name"):
+    if "reviewer_name" not in st.session_state or not st.session_state.get("reviewer_name"):
         st.session_state["reviewer_name"] = _get_logged_in_display_name()
 
     # Header
@@ -378,7 +382,7 @@ if "reviewer_name" not in st.session_state or not st.session_state.get("reviewer
         "manual checks listed at the bottom of each quote."
     )
 
-with st.spinner("Loading live data from Supabase…"):
+    with st.spinner("Loading live data from Supabase…"):
         assessments, detail = fetch_data()
 
     # ── Filter out quotes that already have a recorded reviewer decision ──
@@ -427,7 +431,7 @@ with st.spinner("Loading live data from Supabase…"):
                 st.session_state["selected_quote_no"] not in opts:
             st.session_state["selected_quote_no"] = list(opts.keys())[0] if opts else None
 
-# ── Queue list — compact selectable cards ──────────────────────────────
+        # ── Queue list — compact selectable cards ──────────────────────────────
         for a in visible:
             qno = a["QuoteNo"]
             rec = a["recommendation"]
@@ -440,8 +444,6 @@ with st.spinner("Loading live data from Supabase…"):
             broker_short = (a.get("Broker") or "")[:32]
             our_annual = fmt_money(a.get("OurAnnual"))
 
-            # The clickable card itself — uses a hidden Streamlit button so the
-            # whole card area becomes the click target.
             card_html = (
                 f'<div style="background:{bg};border-radius:8px;padding:9px 12px;'
                 f'margin-bottom:5px;border-left:4px solid {badge_color};'
@@ -461,9 +463,6 @@ with st.spinner("Loading live data from Supabase…"):
             )
             st.markdown(card_html, unsafe_allow_html=True)
 
-            # Invisible-feeling button — small, full-width, transparent label
-            # Streamlit doesn't allow truly-invisible clickable divs, so we use
-            # a thin button rendered just below the card.
             if st.button("Select this quote", key=f"sel_{qno}", use_container_width=True):
                 st.session_state["selected_quote_no"] = qno
                 for k in ["pending_decision", "override_reason", "final_annual", "final_monthly"]:
@@ -552,7 +551,7 @@ with st.spinner("Loading live data from Supabase…"):
         )
         st.markdown(facts_html, unsafe_allow_html=True)
 
-# ── 02 · Premium Comparison — full table layout (matches original HTML design) ──
+        # ── 02 · Premium Comparison — full table layout (matches original HTML design) ──
         st.markdown(
             "#### 02 · Premium Comparison <span style='font-weight:400;color:#888;font-size:0.85rem'>— annualised, per-member adjusted</span>",
             unsafe_allow_html=True,
@@ -590,18 +589,14 @@ with st.spinner("Loading live data from Supabase…"):
             '<th style="padding:14px;text-align:right;color:#888;font-size:0.72rem;font-weight:800;letter-spacing:0.08em">CURRENT INSURER</th>'
             '<th style="padding:14px;text-align:right;color:#888;font-size:0.72rem;font-weight:800;letter-spacing:0.08em">THEIR RENEWAL</th>'
             '</tr></thead><tbody>'
-            # Members row — FHI shows "(quote)" suffix to indicate source
             f'<tr style="border-bottom:1px solid #f5f5f5">{_td_label("Members")}'
             f'<td style="padding:10px 14px;text-align:right;color:#282f4b;font-weight:700">{mbrs_quote if mbrs_quote is not None else "—"} '
             f'<span style="font-size:0.7rem;color:#aaa;font-weight:400">(quote)</span></td>'
             f'{_td_int(mbrs_curr)}{_td_int(mbrs_renew)}</tr>'
-            # Total Annual row
             f'<tr style="border-bottom:1px solid #f5f5f5">{_td_label("Total Annual")}'
             f'{_td_money(our_a, magenta, "800")}{_td_money(cur_a)}{_td_money(ren_a)}</tr>'
-            # Total Monthly row
             f'<tr style="border-bottom:1px solid #f5f5f5">{_td_label("Total Monthly")}'
             f'{_td_money(our_m, magenta, "800")}{_td_money(cur_m)}{_td_money(ren_m)}</tr>'
-            # Avg per member per year
             f'<tr>{_td_label("Avg / Member / Yr")}'
             f'<td style="padding:10px 14px;text-align:right;color:{magenta};font-weight:800">{_avg(our_a, mbrs_quote)}</td>'
             f'<td style="padding:10px 14px;text-align:right;color:#282f4b;font-weight:700">{_avg(cur_a, mbrs_curr)}</td>'
@@ -613,15 +608,15 @@ with st.spinner("Loading live data from Supabase…"):
         # ── Three comparison metrics below the table ──
         def _color_renewal(v):
             if v is None: return "#888"
-            if v >= 50:   return "#e76f51"   # red — decline territory
-            if v <= 0:    return "#e9c46a"   # amber — held / reduced
-            return "#2a9d8f"                  # green — healthy range
+            if v >= 50:   return "#e76f51"
+            if v <= 0:    return "#e9c46a"
+            return "#2a9d8f"
 
         def _color_position(v):
             if v is None: return "#888"
-            if v < -20:   return "#e76f51"   # red — too aggressive
-            if v <= 0:    return "#2a9d8f"   # green — reasonable
-            return "#888"                     # neutral — FHI more expensive
+            if v < -20:   return "#e76f51"
+            if v <= 0:    return "#2a9d8f"
+            return "#888"
 
         def _delta(label, value, color):
             return (
@@ -645,12 +640,11 @@ with st.spinner("Loading live data from Supabase…"):
             + '</div>'
         )
         st.markdown(deltas_html, unsafe_allow_html=True)
-        
-# ── Suggested Release Pricing — styled card layout ────────────────────
+
+        # ── Suggested Release Pricing — styled card layout ────────────────────
         sug_a = sel.get("SuggestedRelease_Annual")
         sug_m = sel.get("SuggestedRelease_Monthly")
         if sug_a or sug_m:
-            # Headline + 2-up monthly/annual primary cards
             is_release = (rec == "RELEASE")
             border_col  = "#2a9d8f" if is_release else "#ccc"
             bg          = "#f0fff4" if is_release else "white"
@@ -709,7 +703,6 @@ with st.spinner("Loading live data from Supabase…"):
             cards_html += "</div>"
             st.markdown(cards_html, unsafe_allow_html=True)
 
-            # Explanatory caption + caveats
             if sug_m:
                 annual_equiv = sug_m * 12
                 st.markdown(
@@ -836,7 +829,7 @@ with st.spinner("Loading live data from Supabase…"):
                                               value=float(sug_m) if sug_m else 0.0, key=f"fm_{sel_qno}")
                 use_override_prem = st.checkbox("Use these values in the audit record", key=f"use_prem_{sel_qno}")
 
-# ── Override reason — always visible so it's available before the click ──
+            # ── Override reason — always visible so it's available before the click ──
             override_reason = st.text_area(
                 "Override reason — required only if your decision differs from the system recommendation:",
                 key=f"reason_{sel_qno}",
@@ -882,7 +875,6 @@ with st.spinner("Loading live data from Supabase…"):
                     final_annual=(final_a if use_override_prem else sug_a),
                     final_monthly=(final_m if use_override_prem else sug_m),
                 )
-                # Feedback to the reviewer
                 if decision == "RELEASE":
                     st.success(f"✅ RELEASE recorded. Reference: **{ref_id}**")
                     st.balloons()
@@ -890,7 +882,6 @@ with st.spinner("Loading live data from Supabase…"):
                     st.warning(f"⚠️ REFER recorded. Reference: **{ref_id}**")
                 else:
                     st.error(f"❌ DECLINE recorded. Reference: **{ref_id}**")
-                # Clear the selection so the queue refreshes and the user sees the quote disappear
                 st.session_state.pop("selected_quote_no", None)
                 st.rerun()
 
