@@ -764,6 +764,28 @@ def main():
                     key=f"reason_{sel_qno}",
                 )
 
+            # Brand the primary decision button (the one matching the recommendation) in FHI magenta
+            st.markdown("""
+                <style>
+                  div[data-testid="stButton"] > button[kind="primary"] {
+                    background-color: #990858;
+                    border-color: #990858;
+                    color: white;
+                    font-weight: 800;
+                    letter-spacing: 0.02em;
+                  }
+                  div[data-testid="stButton"] > button[kind="primary"]:hover {
+                    background-color: #7a0747;
+                    border-color: #7a0747;
+                    color: white;
+                  }
+                  div[data-testid="stButton"] > button[kind="secondary"] {
+                    border-color: #ddd;
+                    color: #555;
+                  }
+                </style>
+            """, unsafe_allow_html=True)
+            
             dcols = st.columns(3)
             if dcols[0].button("✅ Confirm & Release", key=f"btn_release_{sel_qno}", use_container_width=True,
                                type="primary" if rec == "RELEASE" else "secondary"):
