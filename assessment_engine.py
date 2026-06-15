@@ -16,6 +16,9 @@ AUTHORITY_TABLE = {
     'Marcus.Artwell':   ('Marcus Artwell',   'Assistant Underwriter',    'Level 4',           30_000),
     'Lynne Heath':      ('Lynne Heath',      'Customer Service Manager', 'Level 8',           250_000),
     'Martin Pojur':     ('Martin Pojur',     'Senior Underwriter',       'Senior Underwriter', 500_000),
+    'AlexandraRosu':    ('Alexandra Rosu',   'Assistant Underwriter',    'Level 4',           30_000),
+    'Shannon.Bennett':  ('Shannon Bennett',  'Assistant Underwriter',    'Level 4',           30_000),
+    'steve.hudson':     ('Steve Hudson',     'Sales Assistant',          'Level 4',           30_000),
     'Hoosh Mires':      ('Hoosh Mires',      'Chief Operating Officer',  'COO',               float('inf')),
 }
 
