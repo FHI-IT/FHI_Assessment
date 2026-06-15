@@ -162,6 +162,14 @@ def fetch_data():
     )
     if awaiting_id is None:
         return [], {}
+    # Business rule: QuoteStatus = 1 corresponds to "Input - Awaiting assessment".
+    # If the status table is ever reordered, fail loudly rather than filter silently wrong.
+    if awaiting_id != 1:
+        st.error(
+            f"⚠️ Expected QuoteStatus = 1 for 'Input - Awaiting assessment' but got {awaiting_id}. "
+            "The status lookup table may have been reordered. Check `CLAPA_tbl_PA_Quote_Status` in Supabase."
+        )
+        st.stop()
     q_data = (
         client.from_(T_QUOTES)
               .select("*")
