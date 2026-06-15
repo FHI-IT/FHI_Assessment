@@ -505,75 +505,100 @@ def main():
         )
         st.markdown(facts_html, unsafe_allow_html=True)
 
-# ── 02 · Premium Comparison — compact card row ────────────────────────
-        st.markdown("#### 02 · Premium Comparison <span style='font-weight:400;color:#888;font-size:0.85rem'>— annualised, per-member adjusted</span>", unsafe_allow_html=True)
-
-        def _prem_card(label, value, value_color="#282f4b", sublabel=""):
-            sub_html = (
-                f'<div style="font-size:0.72rem;color:#888;margin-top:2px">{sublabel}</div>'
-            ) if sublabel else ""
-            return (
-                f'<div style="background:white;border-radius:8px;padding:14px 18px;'
-                f'box-shadow:0 1px 3px rgba(0,0,0,0.06);height:100%">'
-                f'<div style="font-size:0.66rem;color:#aaa;text-transform:uppercase;'
-                f'letter-spacing:0.08em;font-weight:700;margin-bottom:6px">{label}</div>'
-                f'<div style="font-size:1.5rem;color:{value_color};font-weight:800;'
-                f'letter-spacing:-0.01em">{value}</div>{sub_html}</div>'
-            )
-
-        # Top row — the three big premium figures
-        prem_html = (
-            "<div style='display:grid;grid-template-columns:repeat(3,1fr);"
-            "gap:12px;margin:10px 0 12px 0'>"
-            + _prem_card("FHI Quote", fmt_money(sel.get("OurAnnual")), "#990858")
-            + _prem_card("Current Insurer", fmt_money(sel.get("CurAnnual")))
-            + _prem_card("Their Renewal", fmt_money(sel.get("RenAnnual")))
-            + "</div>"
+# ── 02 · Premium Comparison — full table layout (matches original HTML design) ──
+        st.markdown(
+            "#### 02 · Premium Comparison <span style='font-weight:400;color:#888;font-size:0.85rem'>— annualised, per-member adjusted</span>",
+            unsafe_allow_html=True,
         )
-        st.markdown(prem_html, unsafe_allow_html=True)
 
-        # Second row — comparison metrics
-        pos_vs_ren = sel.get("PositionVsRenewal")
+        our_a = sel.get("OurAnnual");  our_m = sel.get("OurMonthly")
+        cur_a = sel.get("CurAnnual");  cur_m = sel.get("CurMonthly")
+        ren_a = sel.get("RenAnnual");  ren_m = sel.get("RenMonthly")
+        mbrs_quote = sel.get("NumMembers")
+        mbrs_curr  = sel.get("MembersLastYear")
+        mbrs_renew = sel.get("MembersThisYear")
         true_incr  = sel.get("TrueRenewalIncrease")
-        disc_v     = sel.get("Discount")
-        if pos_vs_ren is not None or true_incr is not None or disc_v:
-            def _delta_card(label, value, value_color="#282f4b"):
-                return (
-                    f'<div style="background:#fafafa;border-radius:8px;padding:12px 16px;'
-                    f'border:1px solid #eee;height:100%">'
-                    f'<div style="font-size:0.66rem;color:#aaa;text-transform:uppercase;'
-                    f'letter-spacing:0.08em;font-weight:700;margin-bottom:4px">{label}</div>'
-                    f'<div style="font-size:1.15rem;color:{value_color};font-weight:700">{value}</div></div>'
-                )
+        naive_incr = sel.get("NaiveRenewalIncrease")
+        pos_vs_ren = sel.get("PositionVsRenewal")
+        magenta    = "#990858"
 
-            # Colour position vs renewal: green if FHI under, amber if very under, red if over
-            if pos_vs_ren is not None:
-                pos_color = "#2a9d8f" if -20 <= pos_vs_ren <= 0 else "#e76f51" if pos_vs_ren < -20 else "#888"
-                pos_val = f"{pos_vs_ren:+.1f}%"
-            else:
-                pos_color, pos_val = "#888", "—"
+        def _avg(total, n):
+            return f"£{total/n:,.2f}" if (total is not None and n) else "—"
 
-            # Colour renewal increase: red if ≥50%, amber if held/reduced, green if 0-49%
-            if true_incr is not None:
-                if true_incr >= 50:    incr_color = "#e76f51"
-                elif true_incr <= 0:    incr_color = "#e9c46a"
-                else:                   incr_color = "#2a9d8f"
-                incr_val = f"{true_incr:+.1f}%"
-            else:
-                incr_color, incr_val = "#888", "—"
+        def _td_money(v, color="#282f4b", weight="700"):
+            return f'<td style="padding:10px 14px;text-align:right;color:{color};font-weight:{weight}">{fmt_money(v)}</td>'
 
-            disc_val = f"{disc_v:.1f}%" if disc_v else "None"
+        def _td_int(v):
+            return f'<td style="padding:10px 14px;text-align:right;color:#282f4b;font-weight:700">{v if v is not None else "—"}</td>'
 
-            delta_html = (
-                "<div style='display:grid;grid-template-columns:repeat(3,1fr);"
-                "gap:12px;margin-bottom:20px'>"
-                + _delta_card("Position vs Renewal", pos_val, pos_color)
-                + _delta_card("True Renewal Increase", incr_val, incr_color)
-                + _delta_card("Discount", disc_val)
-                + "</div>"
+        def _td_label(label):
+            return f'<td style="padding:10px 14px;color:#888;font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">{label}</td>'
+
+        table_html = (
+            '<table style="width:100%;border-collapse:collapse;background:white;border-radius:8px;'
+            'box-shadow:0 1px 3px rgba(0,0,0,0.06);margin-bottom:14px;overflow:hidden">'
+            '<thead><tr style="border-bottom:1px solid #eee">'
+            '<th style="padding:14px"></th>'
+            f'<th style="padding:14px;text-align:right;color:{magenta};font-size:0.72rem;font-weight:800;letter-spacing:0.08em">FHI QUOTE</th>'
+            '<th style="padding:14px;text-align:right;color:#888;font-size:0.72rem;font-weight:800;letter-spacing:0.08em">CURRENT INSURER</th>'
+            '<th style="padding:14px;text-align:right;color:#888;font-size:0.72rem;font-weight:800;letter-spacing:0.08em">THEIR RENEWAL</th>'
+            '</tr></thead><tbody>'
+            # Members row — FHI shows "(quote)" suffix to indicate source
+            f'<tr style="border-bottom:1px solid #f5f5f5">{_td_label("Members")}'
+            f'<td style="padding:10px 14px;text-align:right;color:#282f4b;font-weight:700">{mbrs_quote if mbrs_quote is not None else "—"} '
+            f'<span style="font-size:0.7rem;color:#aaa;font-weight:400">(quote)</span></td>'
+            f'{_td_int(mbrs_curr)}{_td_int(mbrs_renew)}</tr>'
+            # Total Annual row
+            f'<tr style="border-bottom:1px solid #f5f5f5">{_td_label("Total Annual")}'
+            f'{_td_money(our_a, magenta, "800")}{_td_money(cur_a)}{_td_money(ren_a)}</tr>'
+            # Total Monthly row
+            f'<tr style="border-bottom:1px solid #f5f5f5">{_td_label("Total Monthly")}'
+            f'{_td_money(our_m, magenta, "800")}{_td_money(cur_m)}{_td_money(ren_m)}</tr>'
+            # Avg per member per year
+            f'<tr>{_td_label("Avg / Member / Yr")}'
+            f'<td style="padding:10px 14px;text-align:right;color:{magenta};font-weight:800">{_avg(our_a, mbrs_quote)}</td>'
+            f'<td style="padding:10px 14px;text-align:right;color:#282f4b;font-weight:700">{_avg(cur_a, mbrs_curr)}</td>'
+            f'<td style="padding:10px 14px;text-align:right;color:#282f4b;font-weight:700">{_avg(ren_a, mbrs_renew)}</td></tr>'
+            '</tbody></table>'
+        )
+        st.markdown(table_html, unsafe_allow_html=True)
+
+        # ── Three comparison metrics below the table ──
+        def _color_renewal(v):
+            if v is None: return "#888"
+            if v >= 50:   return "#e76f51"   # red — decline territory
+            if v <= 0:    return "#e9c46a"   # amber — held / reduced
+            return "#2a9d8f"                  # green — healthy range
+
+        def _color_position(v):
+            if v is None: return "#888"
+            if v < -20:   return "#e76f51"   # red — too aggressive
+            if v <= 0:    return "#2a9d8f"   # green — reasonable
+            return "#888"                     # neutral — FHI more expensive
+
+        def _delta(label, value, color):
+            return (
+                f'<div style="padding:0 14px">'
+                f'<div style="font-size:0.7rem;color:#aaa;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:4px">{label}</div>'
+                f'<div style="font-size:1.3rem;color:{color};font-weight:800">{value}</div></div>'
             )
-            st.markdown(delta_html, unsafe_allow_html=True)
 
+        deltas_html = (
+            '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;'
+            'padding:12px 0;border-top:1px dashed #ddd;border-bottom:1px dashed #ddd;margin-bottom:20px">'
+            + _delta("Renewal — Per-Member (true)",
+                     f"{true_incr:+.1f}%" if true_incr is not None else "—",
+                     _color_renewal(true_incr))
+            + _delta("Renewal — Total (naive)",
+                     f"{naive_incr:+.1f}%" if naive_incr is not None else "—",
+                     _color_renewal(naive_incr))
+            + _delta("FHI vs Renewal",
+                     f"{pos_vs_ren:+.1f}%" if pos_vs_ren is not None else "—",
+                     _color_position(pos_vs_ren))
+            + '</div>'
+        )
+        st.markdown(deltas_html, unsafe_allow_html=True)
+        
 # ── Suggested Release Pricing — styled card layout ────────────────────
         sug_a = sel.get("SuggestedRelease_Annual")
         sug_m = sel.get("SuggestedRelease_Monthly")
