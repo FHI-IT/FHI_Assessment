@@ -478,18 +478,74 @@ def main():
         )
         st.markdown(facts_html, unsafe_allow_html=True)
 
-        st.markdown("#### 02 · Premium Comparison — annualised, per-member adjusted")
-        pc = st.columns(3)
-        pc[0].metric("FHI Quote", fmt_money(sel.get("OurAnnual")))
-        pc[1].metric("Current Insurer", fmt_money(sel.get("CurAnnual")))
-        pc[2].metric("Their Renewal", fmt_money(sel.get("RenAnnual")))
+# ── 02 · Premium Comparison — compact card row ────────────────────────
+        st.markdown("#### 02 · Premium Comparison <span style='font-weight:400;color:#888;font-size:0.85rem'>— annualised, per-member adjusted</span>", unsafe_allow_html=True)
+
+        def _prem_card(label, value, value_color="#282f4b", sublabel=""):
+            sub_html = (
+                f'<div style="font-size:0.72rem;color:#888;margin-top:2px">{sublabel}</div>'
+            ) if sublabel else ""
+            return (
+                f'<div style="background:white;border-radius:8px;padding:14px 18px;'
+                f'box-shadow:0 1px 3px rgba(0,0,0,0.06);height:100%">'
+                f'<div style="font-size:0.66rem;color:#aaa;text-transform:uppercase;'
+                f'letter-spacing:0.08em;font-weight:700;margin-bottom:6px">{label}</div>'
+                f'<div style="font-size:1.5rem;color:{value_color};font-weight:800;'
+                f'letter-spacing:-0.01em">{value}</div>{sub_html}</div>'
+            )
+
+        # Top row — the three big premium figures
+        prem_html = (
+            "<div style='display:grid;grid-template-columns:repeat(3,1fr);"
+            "gap:12px;margin:10px 0 12px 0'>"
+            + _prem_card("FHI Quote", fmt_money(sel.get("OurAnnual")), "#990858")
+            + _prem_card("Current Insurer", fmt_money(sel.get("CurAnnual")))
+            + _prem_card("Their Renewal", fmt_money(sel.get("RenAnnual")))
+            + "</div>"
+        )
+        st.markdown(prem_html, unsafe_allow_html=True)
+
+        # Second row — comparison metrics
         pos_vs_ren = sel.get("PositionVsRenewal")
         true_incr  = sel.get("TrueRenewalIncrease")
-        if pos_vs_ren is not None or true_incr is not None:
-            pc2 = st.columns(3)
-            pc2[0].metric("Position vs Renewal", f"{pos_vs_ren:+.1f}%" if pos_vs_ren is not None else "—")
-            pc2[1].metric("True renewal incr", f"{true_incr:+.1f}%" if true_incr is not None else "—")
-            pc2[2].metric("Discount", f"{sel.get('Discount'):.1f}%" if sel.get("Discount") else "None")
+        disc_v     = sel.get("Discount")
+        if pos_vs_ren is not None or true_incr is not None or disc_v:
+            def _delta_card(label, value, value_color="#282f4b"):
+                return (
+                    f'<div style="background:#fafafa;border-radius:8px;padding:12px 16px;'
+                    f'border:1px solid #eee;height:100%">'
+                    f'<div style="font-size:0.66rem;color:#aaa;text-transform:uppercase;'
+                    f'letter-spacing:0.08em;font-weight:700;margin-bottom:4px">{label}</div>'
+                    f'<div style="font-size:1.15rem;color:{value_color};font-weight:700">{value}</div></div>'
+                )
+
+            # Colour position vs renewal: green if FHI under, amber if very under, red if over
+            if pos_vs_ren is not None:
+                pos_color = "#2a9d8f" if -20 <= pos_vs_ren <= 0 else "#e76f51" if pos_vs_ren < -20 else "#888"
+                pos_val = f"{pos_vs_ren:+.1f}%"
+            else:
+                pos_color, pos_val = "#888", "—"
+
+            # Colour renewal increase: red if ≥50%, amber if held/reduced, green if 0-49%
+            if true_incr is not None:
+                if true_incr >= 50:    incr_color = "#e76f51"
+                elif true_incr <= 0:    incr_color = "#e9c46a"
+                else:                   incr_color = "#2a9d8f"
+                incr_val = f"{true_incr:+.1f}%"
+            else:
+                incr_color, incr_val = "#888", "—"
+
+            disc_val = f"{disc_v:.1f}%" if disc_v else "None"
+
+            delta_html = (
+                "<div style='display:grid;grid-template-columns:repeat(3,1fr);"
+                "gap:12px;margin-bottom:20px'>"
+                + _delta_card("Position vs Renewal", pos_val, pos_color)
+                + _delta_card("True Renewal Increase", incr_val, incr_color)
+                + _delta_card("Discount", disc_val)
+                + "</div>"
+            )
+            st.markdown(delta_html, unsafe_allow_html=True)
 
         sug_a = sel.get("SuggestedRelease_Annual")
         sug_m = sel.get("SuggestedRelease_Monthly")
