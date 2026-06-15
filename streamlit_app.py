@@ -431,23 +431,52 @@ def main():
         st.markdown("<div class='ref-id-label'>AUDIT REFERENCE — paste into CRM note field</div>", unsafe_allow_html=True)
         st.code(ref_id, language=None)
 
+        # ── 01 · Quote Facts — compact card grid ────────────────────────────
         st.markdown("#### 01 · Quote Facts")
-        fc = st.columns(3)
-        fc[0].metric("Members", sel.get("NumMembers", "—"))
+
+        def _fact_card(label, value, band_text="", band_class="neutral"):
+            band_colors = {"good": "#2a9d8f", "warn": "#e9c46a",
+                           "bad":  "#e76f51", "neutral": "#888"}
+            color = band_colors.get(band_class, "#888")
+            band_html = (
+                f'<span style="font-size:0.78rem;color:{color};font-weight:700;'
+                f'margin-left:6px">· {band_text}</span>'
+            ) if band_text else ""
+            return (
+                f'<div style="background:white;border-radius:8px;padding:12px 16px;'
+                f'box-shadow:0 1px 3px rgba(0,0,0,0.06);height:100%">'
+                f'<div style="font-size:0.66rem;color:#aaa;text-transform:uppercase;'
+                f'letter-spacing:0.08em;font-weight:700;margin-bottom:4px">{label}</div>'
+                f'<div style="font-size:1.05rem;color:#282f4b;font-weight:700">'
+                f'{value}{band_html}</div></div>'
+            )
+
         avg_age = sel.get("AvgMemberAge")
-        fc[1].metric("Weighted Avg Age", f"{avg_age:.2f} · {sel.get('AvgAgeBand','')}" if avg_age else "—")
-        fc[2].metric("Max Age", sel.get("MaxMemberAge", "—"))
-        fc2 = st.columns(3)
-        fc2[0].metric("Client pays", sel.get("PaymentFrequency") or "—")
-        fc2[1].metric("Current Insurer", sel.get("CurrentInsurer") or "—")
-        ppl = sel.get("PremPerLife")
-        fc2[2].metric("Premium / life (FHI)", f"{fmt_money(ppl)} · {sel.get('PremPerLifeBand','')}" if ppl else "—")
-        fc3 = st.columns(3)
-        fc3[0].metric("Dominant UW", sel.get("DominantUW") or "—")
-        who = sel.get("WhoCreated") or "—"
-        role = sel.get("CreatorRole") or ""
-        fc3[1].metric("Quote Created By", f"{who} {role}".strip())
-        fc3[2].metric("Location", sel.get("Postcode") or sel.get("Town") or "—")
+        ppl     = sel.get("PremPerLife")
+        who     = sel.get("WhoCreated") or "—"
+        role    = sel.get("CreatorLicence") or ""
+
+        facts_html = (
+            "<div style='display:grid;grid-template-columns:repeat(3,1fr);"
+            "gap:12px;margin:10px 0 20px 0'>"
+            + _fact_card("Members", sel.get("NumMembers", "—"))
+            + _fact_card("Weighted Avg Age",
+                         f"{avg_age:.2f}" if avg_age else "—",
+                         sel.get("AvgAgeBand", ""),
+                         sel.get("AvgAgeBandClass", "neutral"))
+            + _fact_card("Max Age", sel.get("MaxMemberAge", "—"))
+            + _fact_card("Client pays", sel.get("PaymentFrequency") or "—")
+            + _fact_card("Current Insurer", sel.get("CurrentInsurer") or "—")
+            + _fact_card("Premium / life (FHI)",
+                         fmt_money(ppl) if ppl else "—",
+                         sel.get("PremPerLifeBand", "").split(" ")[0] if ppl else "",
+                         sel.get("PremPerLifeBandClass", "neutral"))
+            + _fact_card("Dominant UW", sel.get("DominantUW") or "—")
+            + _fact_card("Quote Created By", who, role)
+            + _fact_card("Location", sel.get("Postcode") or sel.get("Town") or "—")
+            + "</div>"
+        )
+        st.markdown(facts_html, unsafe_allow_html=True)
 
         st.markdown("#### 02 · Premium Comparison — annualised, per-member adjusted")
         pc = st.columns(3)
