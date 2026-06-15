@@ -547,15 +547,99 @@ def main():
             )
             st.markdown(delta_html, unsafe_allow_html=True)
 
+# ── Suggested Release Pricing — styled card layout ────────────────────
         sug_a = sel.get("SuggestedRelease_Annual")
         sug_m = sel.get("SuggestedRelease_Monthly")
         if sug_a or sug_m:
-            st.markdown("<div class='section-label'>Suggested Release Pricing (§12 formula)</div>", unsafe_allow_html=True)
-            sp = st.columns(2)
+            # Headline + 2-up monthly/annual primary cards
+            is_release = (rec == "RELEASE")
+            border_col  = "#2a9d8f" if is_release else "#ccc"
+            bg          = "#f0fff4" if is_release else "white"
+            value_col   = "#2a9d8f" if is_release else "#282f4b"
+
+            def _release_card(period, value, binding, aggressive, cap):
+                return (
+                    f'<div style="background:{bg};border:2px solid {border_col};'
+                    f'border-radius:10px;padding:18px 22px;height:100%">'
+                    f'<div style="font-size:0.7rem;color:#888;text-transform:uppercase;'
+                    f'letter-spacing:0.1em;font-weight:700;margin-bottom:6px">'
+                    f'Suggested {period} Release Price</div>'
+                    f'<div style="font-size:1.9rem;color:{value_col};font-weight:800;'
+                    f'letter-spacing:-0.02em">{value}</div>'
+                    f'<div style="margin-top:12px;padding-top:10px;border-top:1px dashed #ddd;'
+                    f'font-size:0.78rem">'
+                    f'<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
+                    f'<span style="color:#888;font-weight:700">R−20%</span>'
+                    f'<span style="font-weight:700;color:#282f4b">{aggressive}</span></div>'
+                    f'<div style="display:flex;justify-content:space-between;margin-bottom:6px">'
+                    f'<span style="color:#888;font-weight:700">FHI base −10% cap</span>'
+                    f'<span style="font-weight:700;color:#282f4b">{cap}</span></div>'
+                    f'<div style="display:flex;justify-content:space-between;'
+                    f'padding-top:6px;border-top:1px dotted #eee">'
+                    f'<span style="color:#888;font-weight:700">Binding</span>'
+                    f'<span style="font-weight:800;color:#006f8e">{binding}</span></div>'
+                    f'</div></div>'
+                )
+
+            st.markdown(
+                "<div class='section-label'>Suggested Release Pricing — §12 formula, applied independently to monthly & annual</div>",
+                unsafe_allow_html=True,
+            )
+
+            cards_html = "<div style='display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px'>"
             if sug_a:
-                sp[0].metric(f"Annual (binding: {sel.get('SuggestedRelease_Annual_Binding','')})", fmt_money(sug_a))
+                cards_html += _release_card(
+                    "Annual",
+                    fmt_money(sug_a),
+                    sel.get("SuggestedRelease_Annual_Binding", "—"),
+                    fmt_money(sel.get("SuggestedRelease_Annual_Aggressive")),
+                    fmt_money(sel.get("SuggestedRelease_Annual_Cap")),
+                )
+            else:
+                cards_html += '<div style="padding:18px;color:#aaa;background:#fafafa;border-radius:10px">No annual figure available</div>'
             if sug_m:
-                sp[1].metric(f"Monthly (binding: {sel.get('SuggestedRelease_Monthly_Binding','')})", fmt_money(sug_m))
+                cards_html += _release_card(
+                    "Monthly",
+                    fmt_money(sug_m),
+                    sel.get("SuggestedRelease_Monthly_Binding", "—"),
+                    fmt_money(sel.get("SuggestedRelease_Monthly_Aggressive")),
+                    fmt_money(sel.get("SuggestedRelease_Monthly_Cap")),
+                )
+            else:
+                cards_html += '<div style="padding:18px;color:#aaa;background:#fafafa;border-radius:10px">No monthly figure available</div>'
+            cards_html += "</div>"
+            st.markdown(cards_html, unsafe_allow_html=True)
+
+            # Explanatory caption + caveats
+            if sug_m:
+                annual_equiv = sug_m * 12
+                st.markdown(
+                    f'<div style="padding:10px 14px;background:#e8f4f8;border-left:3px solid #006f8e;'
+                    f'border-radius:0 6px 6px 0;font-size:0.82rem;color:#555;margin-bottom:10px">'
+                    f'Calculations are <strong style="color:#282f4b">independent</strong> — '
+                    f'annual reflects the 6% annual-payment discount; monthly does not. '
+                    f'<strong>£{sug_m:,.2f} × 12 = £{annual_equiv:,.2f}</strong> '
+                    f'(un-discounted monthly cost over the year).</div>',
+                    unsafe_allow_html=True,
+                )
+            if not is_release:
+                st.markdown(
+                    f'<div style="padding:10px 14px;background:#fff8e1;border-left:3px solid #e9c46a;'
+                    f'border-radius:0 6px 6px 0;font-size:0.82rem;color:#555;margin-bottom:10px">'
+                    f'Quote is currently <strong>{rec}</strong> — suggested prices only applicable '
+                    f'once any referral is cleared.</div>',
+                    unsafe_allow_html=True,
+                )
+            our_a = sel.get("OurAnnual")
+            if sug_a and our_a and sug_a > our_a * 1.5:
+                st.markdown(
+                    '<div style="padding:10px 14px;background:#fdecea;border-left:3px solid #e76f51;'
+                    'border-radius:0 6px 6px 0;font-size:0.82rem;color:#555;margin-bottom:20px">'
+                    '<strong>Anomalous result:</strong> formula returns a price far above our CRM quote. '
+                    'Likely indicates inconsistent renewal data or current insurer\'s renewal is out of line. '
+                    'Verify before applying.</div>',
+                    unsafe_allow_html=True,
+                )
 
         flags = sel.get("flags", [])
         st.markdown("#### 03 · Rules Fired")
