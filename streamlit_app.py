@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
-import streamlit as st
+import streamlit as sth
 from supabase import create_client
 from supabase.client import ClientOptions
 
@@ -142,21 +142,25 @@ T_LOG     = "assessment_log"
 ENGINE_VERSION = "v6.1"
 
 
+# ── Authority register — reviewer names for dropdown ──────────────────────────
+AUTHORITY_REGISTER = [
+    "Hoosh Mires",
+    "Jamie",
+    "Emma",
+    "Sarah",
+    "Tom",
+    "Rachel",
+    "David",
+    "Lucy",
+]
+
 def _get_logged_in_display_name():
     """
-    Returns a clean display name for the logged-in Streamlit Cloud user.
-    Converts e.g. 'hoosh.mires@freedomhealthnet.co.uk' -> 'Hoosh Mires'.
-    Returns empty string if no user info is available.
+    st.user is not populated in shared-password Streamlit apps — always returns ''.
+    Reviewer identity is instead captured via the authority register dropdown
+    in the decision panel, which persists for the session.
     """
-    try:
-        u = getattr(st, "user", None) or getattr(st, "experimental_user", None)
-        email = getattr(u, "email", None) if u else None
-        if not email:
-            return ""
-        username = email.split("@")[0]
-        return " ".join(p.capitalize() for p in username.replace("_", ".").split("."))
-    except Exception:
-        return ""
+    return ""
 
 
 def clean_nans(obj):
@@ -371,7 +375,7 @@ def main():
         st.markdown(
             f"<div style='text-align:right;font-size:0.8rem;color:#888'>"
             f"<strong>{datetime.now().strftime('%d %b %Y · %H:%M')}</strong><br>"
-            f"Reviewer: {st.session_state['reviewer_name']}</div>",
+            f"Reviewer: {st.session_state.get('reviewer_name') or 'Not yet selected'}</div>",
             unsafe_allow_html=True,
         )
 
@@ -815,11 +819,24 @@ def main():
                 except Exception as e:
                     st.error(f"Could not reopen: {e}")
         else:
-            r_name = st.text_input("Your name (for audit log)",
-                                   value=st.session_state.get("reviewer_name", ""),
-                                   key=f"rname_{sel_qno}")
-            if r_name:
+            # Reviewer name — selectbox from authority register
+            # (shared-password apps cannot auto-detect identity via st.user)
+            name_opts = ["— select your name —"] + AUTHORITY_REGISTER
+            saved_name = st.session_state.get("reviewer_name", "")
+            try:
+                default_idx = name_opts.index(saved_name) if saved_name in name_opts else 0
+            except ValueError:
+                default_idx = 0
+            r_name = st.selectbox(
+                "Your name (for audit log)",
+                options=name_opts,
+                index=default_idx,
+                key=f"rname_{sel_qno}",
+            )
+            if r_name and r_name != "— select your name —":
                 st.session_state["reviewer_name"] = r_name
+            else:
+                r_name = ""
 
             with st.expander("Override release premium (optional)", expanded=False):
                 oc = st.columns(2)
