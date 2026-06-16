@@ -145,13 +145,12 @@ ENGINE_VERSION = "v6.1"
 # ── Authority register — reviewer names for dropdown ──────────────────────────
 AUTHORITY_REGISTER = [
     "Hoosh Mires",
-    "Jamie",
-    "Emma",
-    "Sarah",
-    "Tom",
-    "Rachel",
-    "David",
-    "Lucy",
+    "Lynne Heath",
+    "Martin Pojur",
+    "Clare Smith",
+    "Marcus Artwell",
+    "Shannon Bennett",
+    
 ]
 
 def _get_logged_in_display_name():
