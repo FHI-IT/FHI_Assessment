@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
-import streamlit as sth
+import streamlit as st
 from supabase import create_client
 from supabase.client import ClientOptions
 
