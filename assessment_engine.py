@@ -93,7 +93,7 @@ def assess_quote(q, m_sub, c_sub):
     pay_freq = q.get('Payment Frequency')
 
     our_annual  = float(q['AnnualPremium_n']) if not is_unpriced else None
-    our_monthly = parse_money(q.get('MonthlyPremium')) or (our_annual / 12 if our_annual else None)
+    our_monthly = parse_money(q.get('MonthlyPremium') or q.get('Monthly Premium')) or (our_annual / 12 if our_annual else None)
 
     cur_raw = q.get('CurrentInsurerPremium'); ren_raw = q.get('RenewalInsurerPremium')
     cur_annual  = to_annual(cur_raw, pay_freq) if pd.notna(cur_raw) else None
@@ -324,8 +324,8 @@ def assess_quote(q, m_sub, c_sub):
 
     # Â§4 / Â§12 Premium per life and per-UW-type thresholds
     if is_group and result['NumMembers'] > 0 and (our_annual or our_monthly):
-        # Use monthly x 12 when client pays monthly; annual otherwise.
-        # E.g. monthly total x 12 / members gives correct annualised cost-per-life.
+        # Use monthly x 12 when client pays monthly; annual figure otherwise.
+        # E.g. monthly x 12 / members gives correct annualised cost-per-life.
         if pay_freq == 'Monthly' and our_monthly:
             ppl = (our_monthly * 12) / result['NumMembers']
         else:
@@ -373,13 +373,19 @@ def assess_quote(q, m_sub, c_sub):
         m_cap        = fhi_monthly_base * 0.90      # FHI base -10% (monthly)
 
         # Key Health Partnership arrangement: KHP holds a discretionary 10% discount
-        # on top of any FHI quote. Therefore FHI must quote at base rate (no -10% cap)
-        # so that after KHP applies their 10%, the effective floor is FHI base -10%.
+        # on top of any FHI quote. FHI must therefore quote at base rate (no -10% cap).
+        # If R-20% would be binding, reduce to R-10% so that after KHP's 10% the
+        # effective floor remains R-20% (not R-30%).
         broker_val = (result.get('Broker') or '').strip()
         is_khp = 'key health' in broker_val.lower()
         if is_khp:
-            m_suggested = fhi_monthly_base          # Cap at FHI base rate for KHP
-            binding     = 'FHI base rate (KHP 10% discount arrangement)'
+            m_khp_aggressive = ren_monthly * 0.90   # R-10% for KHP (R-20% capped)
+            m_khp_cap        = fhi_monthly_base      # FHI base rate (no -10% cap for KHP)
+            m_suggested      = max(m_khp_aggressive, m_khp_cap)
+            if m_khp_aggressive >= m_khp_cap:
+                binding = 'R-10% (KHP: R-20% capped at R-10%)'
+            else:
+                binding = 'FHI base rate (KHP 10% discount arrangement)'
         else:
             m_suggested = max(m_aggressive, m_cap)
             binding     = 'R-20%' if m_aggressive >= m_cap else 'FHI base -10% cap'
@@ -392,9 +398,8 @@ def assess_quote(q, m_sub, c_sub):
                 'ref': 'KHP Agreement',
                 'detail': (
                     'Quote referred: KHP holds a 10% discretionary discount. '
-                    'FHI is quoting at base rate; after KHP discount the effective '
-                    'floor is FHI base −10%. Suggested monthly release price shown '
-                    'is FHI base rate only.'
+                    'FHI quoting at base rate; R-20% reduced to R-10%. '
+                    'After KHP discount: effective floor is FHI base -10% / R-20%.'
                 )
             })
 
