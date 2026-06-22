@@ -1,5 +1,5 @@
 """
-Freedom Health Insurance — New Business Review
+Freedom Health Insurance â New Business Review
 Streamlit app (Task 2 + Task 3)
 """
 
@@ -17,10 +17,10 @@ from supabase.client import ClientOptions
 
 from assessment_engine import assess_quote, parse_money
 
-# ── Page config ────────────────────────────────────────────────────────────────
+# ââ Page config ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 st.set_page_config(
-    page_title="FHI — New Business Review",
-    page_icon="🏥",
+    page_title="FHI â New Business Review",
+    page_icon="ð¥",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -91,13 +91,13 @@ FHI_CSS = """
 </style>
 """
 
-# ── Authentication ─────────────────────────────────────────────────────────────
+# ââ Authentication âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 def check_password() -> bool:
     if st.session_state.get("authenticated"):
         return True
     col = st.columns([1, 2, 1])[1]
     with col:
-        st.markdown("## 🏥 Freedom Health — New Business Review")
+        st.markdown("## ð¥ Freedom Health â New Business Review")
         st.markdown("Please enter the team password to continue.")
         pw = st.text_input("Password", type="password", key="pw_input")
         if st.button("Sign in", use_container_width=True):
@@ -109,16 +109,16 @@ def check_password() -> bool:
                 st.session_state["authenticated"] = True
                 st.rerun()
             else:
-                st.error("Incorrect password — please try again.")
+                st.error("Incorrect password â please try again.")
     return False
 
 if not check_password():
     st.stop()
 
-# ── Inject CSS only after auth passes ─────────────────────────────────────────
+# ââ Inject CSS only after auth passes âââââââââââââââââââââââââââââââââââââââââ
 st.markdown(FHI_CSS, unsafe_allow_html=True)
 
-# ── Supabase client ────────────────────────────────────────────────────────────
+# ââ Supabase client ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 @st.cache_resource
 def get_client():
     try:
@@ -133,7 +133,7 @@ def get_client():
         options=ClientOptions(schema="12_clapa", postgrest_client_timeout=30),
     )
 
-# ── Table names ────────────────────────────────────────────────────────────────
+# ââ Table names ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 T_QUOTES  = "CLAPA_tbl_PA_Quotes"
 T_MEMBERS = "CLAPA_tbl_Quotes_Members"
 T_CATS    = "CLAPA_tbl_PA_Quote_Cats"
@@ -142,7 +142,7 @@ T_LOG     = "assessment_log"
 ENGINE_VERSION = "v6.1"
 
 
-# ── Authority register — reviewer names for dropdown ──────────────────────────
+# ââ Authority register â reviewer names for dropdown ââââââââââââââââââââââââââ
 AUTHORITY_REGISTER = [
     "Hoosh Mires",
     "Lynne Heath",
@@ -155,7 +155,7 @@ AUTHORITY_REGISTER = [
 
 def _get_logged_in_display_name():
     """
-    st.user is not populated in shared-password Streamlit apps — always returns ''.
+    st.user is not populated in shared-password Streamlit apps â always returns ''.
     Reviewer identity is instead captured via the authority register dropdown
     in the decision panel, which persists for the session.
     """
@@ -186,7 +186,7 @@ def fetch_data():
     # If the status table is ever reordered, fail loudly rather than filter silently wrong.
     if awaiting_id != 1:
         st.error(
-            f"⚠️ Expected QuoteStatus = 1 for 'Input - Awaiting assessment' but got {awaiting_id}. "
+            f"â ï¸ Expected QuoteStatus = 1 for 'Input - Awaiting assessment' but got {awaiting_id}. "
             "The status lookup table may have been reordered. Check `CLAPA_tbl_PA_Quote_Status` in Supabase."
         )
         st.stop()
@@ -240,7 +240,7 @@ def fetch_data():
             ],
             "member_count_total": len(msub),
         }
-    assessments.sort(key=lambda x: x.get("DateEntered", ""), reverse=True)
+    assessments.sort(key=lambda x: x.get("QuoteNo", 0))  # ascending quote number order
     return assessments, detail
 
 
@@ -324,7 +324,7 @@ def record_reviewer_decision(client, ref_id, decision, system_rec,
 
 
 def fmt_money(v):
-    return "—" if v is None else f"£{v:,.2f}"
+    return "â" if v is None else f"Â£{v:,.2f}"
 
 
 def render_flag(f):
@@ -342,17 +342,17 @@ def render_flag(f):
 
 def render_check(c):
     status = c.get("status", "pass")
-    icon   = {"pass": "✅", "fail": "❌", "refer": "⚠️", "info": "ℹ️"}.get(status, "•")
+    icon   = {"pass": "â", "fail": "â", "refer": "â ï¸", "info": "â¹ï¸"}.get(status, "â¢")
     ref    = c.get("ref", "")
     ref_span = f'<span class="sec-ref">{ref}</span>' if ref else ""
     st.markdown(
         f'<div class="flag-row flag-{status}">{icon} <strong>{c.get("rule","")}</strong>'
-        f'{ref_span} — <span style="color:#555">{c.get("detail","")}</span></div>',
+        f'{ref_span} â <span style="color:#555">{c.get("detail","")}</span></div>',
         unsafe_allow_html=True,
     )
 
 
-# ── Main UI ────────────────────────────────────────────────────────────────────
+# ââ Main UI ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 def main():
     client = get_client()
     if "reviewer_name" not in st.session_state or not st.session_state.get("reviewer_name"):
@@ -367,13 +367,13 @@ def main():
     with cols[1]:
         st.markdown(
             "<h1 style='font-size:1.6rem;font-weight:800;color:#282f4b;margin:0'>New Business Review</h1>"
-            "<p style='color:#888;font-size:0.82rem;margin:0'>Automated assessment · Quote Parameters v2.1 (effective 1 April 2026)</p>",
+            "<p style='color:#888;font-size:0.82rem;margin:0'>Automated assessment Â· Quote Parameters v2.1 (effective 1 April 2026)</p>",
             unsafe_allow_html=True,
         )
     with cols[2]:
         st.markdown(
             f"<div style='text-align:right;font-size:0.8rem;color:#888'>"
-            f"<strong>{datetime.now().strftime('%d %b %Y · %H:%M')}</strong><br>"
+            f"<strong>{datetime.now().strftime('%d %b %Y Â· %H:%M')}</strong><br>"
             f"Reviewer: {st.session_state.get('reviewer_name') or 'Not yet selected'}</div>",
             unsafe_allow_html=True,
         )
@@ -381,14 +381,14 @@ def main():
     st.markdown("---")
     st.info(
         "**Quote Parameters v2.1 (1 April 2026):** All checkable rules applied. "
-        "Average age is *premium-weighted* (per §3); §n references shown beside rules; "
+        "Average age is *premium-weighted* (per Â§3); Â§n references shown beside rules; "
         "manual checks listed at the bottom of each quote."
     )
 
-    with st.spinner("Loading live data from Supabase…"):
+    with st.spinner("Loading live data from Supabaseâ¦"):
         assessments, detail = fetch_data()
 
-    # ── Filter out quotes that already have a recorded reviewer decision ──
+    # ââ Filter out quotes that already have a recorded reviewer decision ââ
     n_decided_recently = 0
     if assessments:
         quote_nos = [a["QuoteNo"] for a in assessments]
@@ -428,13 +428,13 @@ def main():
         if not visible:
             st.caption(f"No quotes matching '{filter_sel}'")
 
-        opts = {a["QuoteNo"]: f"{a.get('QuoteName','—')} #{a['QuoteNo']} [{a['recommendation']}]"
+        opts = {a["QuoteNo"]: f"{a.get('QuoteName','â')} #{a['QuoteNo']} [{a['recommendation']}]"
                 for a in visible}
         if "selected_quote_no" not in st.session_state or \
                 st.session_state["selected_quote_no"] not in opts:
             st.session_state["selected_quote_no"] = list(opts.keys())[0] if opts else None
 
-        # ── Queue list — compact selectable cards ──────────────────────────────
+        # ââ Queue list â compact selectable cards ââââââââââââââââââââââââââââââ
         for a in visible:
             qno = a["QuoteNo"]
             rec = a["recommendation"]
@@ -454,13 +454,13 @@ def main():
                 f'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
                 f'<strong style="font-size:0.88rem;color:#282f4b;'
                 f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">'
-                f'{a.get("QuoteName","—")}</strong>'
+                f'{a.get("QuoteName","â")}</strong>'
                 f'<span style="background:{badge_color};color:white;padding:1px 7px;'
                 f'border-radius:10px;font-size:0.66rem;font-weight:700;letter-spacing:0.04em;'
                 f'flex-shrink:0">{rec}</span></div>'
                 f'<div style="font-size:0.72rem;color:#888;margin-top:2px;'
                 f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
-                f'#{qno} · {mbrs} mbrs · {avg_age_str} · {broker_short}</div>'
+                f'#{qno} Â· {mbrs} mbrs Â· {avg_age_str} Â· {broker_short}</div>'
                 f'<div style="font-size:0.8rem;color:#282f4b;font-weight:700;margin-top:1px">'
                 f'{our_annual}/yr</div></div>'
             )
@@ -489,10 +489,10 @@ def main():
 
         date_str = str(sel.get("DateEntered", ""))[:10]
         st.markdown(
-            f"<p style='color:#aaa;font-size:0.78rem;margin-bottom:2px'>QUOTE · {date_str}</p>"
-            f"<h2 style='margin:0;color:#282f4b'>{sel.get('QuoteName','—')}</h2>"
+            f"<p style='color:#aaa;font-size:0.78rem;margin-bottom:2px'>QUOTE Â· {date_str}</p>"
+            f"<h2 style='margin:0;color:#282f4b'>{sel.get('QuoteName','â')}</h2>"
             f"<p style='color:#888;font-size:0.85rem;margin-top:2px'>"
-            f"{sel.get('QuoteVer','—')} via {sel.get('Broker','—')} · System status: {sel.get('StatusName','—')}</p>",
+            f"{sel.get('QuoteVer','â')} via {sel.get('Broker','â')} Â· System status: {sel.get('StatusName','â')}</p>",
             unsafe_allow_html=True,
         )
         st.markdown(
@@ -504,11 +504,11 @@ def main():
             unsafe_allow_html=True,
         )
 
-        st.markdown("<div class='ref-id-label'>AUDIT REFERENCE — paste into CRM note field</div>", unsafe_allow_html=True)
+        st.markdown("<div class='ref-id-label'>AUDIT REFERENCE â paste into CRM note field</div>", unsafe_allow_html=True)
         st.code(ref_id, language=None)
 
-        # ── 01 · Quote Facts — compact card grid ────────────────────────────
-        st.markdown("#### 01 · Quote Facts")
+        # ââ 01 Â· Quote Facts â compact card grid ââââââââââââââââââââââââââââ
+        st.markdown("#### 01 Â· Quote Facts")
 
         def _fact_card(label, value, band_text="", band_class="neutral"):
             band_colors = {"good": "#2a9d8f", "warn": "#e9c46a",
@@ -516,7 +516,7 @@ def main():
             color = band_colors.get(band_class, "#888")
             band_html = (
                 f'<span style="font-size:0.78rem;color:{color};font-weight:700;'
-                f'margin-left:6px">· {band_text}</span>'
+                f'margin-left:6px">Â· {band_text}</span>'
             ) if band_text else ""
             return (
                 f'<div style="background:white;border-radius:8px;padding:12px 16px;'
@@ -529,34 +529,34 @@ def main():
 
         avg_age = sel.get("AvgMemberAge")
         ppl     = sel.get("PremPerLife")
-        who     = sel.get("WhoCreated") or "—"
+        who     = sel.get("WhoCreated") or "â"
         role    = sel.get("CreatorLicence") or ""
 
         facts_html = (
             "<div style='display:grid;grid-template-columns:repeat(3,1fr);"
             "gap:12px;margin:10px 0 20px 0'>"
-            + _fact_card("Members", sel.get("NumMembers", "—"))
+            + _fact_card("Members", sel.get("NumMembers", "â"))
             + _fact_card("Weighted Avg Age",
-                         f"{avg_age:.2f}" if avg_age else "—",
+                         f"{avg_age:.2f}" if avg_age else "â",
                          sel.get("AvgAgeBand", ""),
                          sel.get("AvgAgeBandClass", "neutral"))
-            + _fact_card("Max Age", sel.get("MaxMemberAge", "—"))
-            + _fact_card("Client pays", sel.get("PaymentFrequency") or "—")
-            + _fact_card("Current Insurer", sel.get("CurrentInsurer") or "—")
+            + _fact_card("Max Age", sel.get("MaxMemberAge", "â"))
+            + _fact_card("Client pays", sel.get("PaymentFrequency") or "â")
+            + _fact_card("Current Insurer", sel.get("CurrentInsurer") or "â")
             + _fact_card("Premium / life (FHI)",
-                         fmt_money(ppl) if ppl else "—",
+                         fmt_money(ppl) if ppl else "â",
                          sel.get("PremPerLifeBand", "").split(" ")[0] if ppl else "",
                          sel.get("PremPerLifeBandClass", "neutral"))
-            + _fact_card("Dominant UW", sel.get("DominantUW") or "—")
+            + _fact_card("Dominant UW", sel.get("DominantUW") or "â")
             + _fact_card("Quote Created By", who, role)
-            + _fact_card("Location", sel.get("Postcode") or sel.get("Town") or "—")
+            + _fact_card("Location", sel.get("Postcode") or sel.get("Town") or "â")
             + "</div>"
         )
         st.markdown(facts_html, unsafe_allow_html=True)
 
-        # ── 02 · Premium Comparison — full table layout (matches original HTML design) ──
+        # ââ 02 Â· Premium Comparison â full table layout (matches original HTML design) ââ
         st.markdown(
-            "#### 02 · Premium Comparison <span style='font-weight:400;color:#888;font-size:0.85rem'>— annualised, per-member adjusted</span>",
+            "#### 02 Â· Premium Comparison <span style='font-weight:400;color:#888;font-size:0.85rem'>â annualised, per-member adjusted</span>",
             unsafe_allow_html=True,
         )
 
@@ -572,13 +572,13 @@ def main():
         magenta    = "#990858"
 
         def _avg(total, n):
-            return f"£{total/n:,.2f}" if (total is not None and n) else "—"
+            return f"Â£{total/n:,.2f}" if (total is not None and n) else "â"
 
         def _td_money(v, color="#282f4b", weight="700"):
             return f'<td style="padding:10px 14px;text-align:right;color:{color};font-weight:{weight}">{fmt_money(v)}</td>'
 
         def _td_int(v):
-            return f'<td style="padding:10px 14px;text-align:right;color:#282f4b;font-weight:700">{v if v is not None else "—"}</td>'
+            return f'<td style="padding:10px 14px;text-align:right;color:#282f4b;font-weight:700">{v if v is not None else "â"}</td>'
 
         def _td_label(label):
             return f'<td style="padding:10px 14px;color:#888;font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">{label}</td>'
@@ -593,7 +593,7 @@ def main():
             '<th style="padding:14px;text-align:right;color:#888;font-size:0.72rem;font-weight:800;letter-spacing:0.08em">THEIR RENEWAL</th>'
             '</tr></thead><tbody>'
             f'<tr style="border-bottom:1px solid #f5f5f5">{_td_label("Members")}'
-            f'<td style="padding:10px 14px;text-align:right;color:#282f4b;font-weight:700">{mbrs_quote if mbrs_quote is not None else "—"} '
+            f'<td style="padding:10px 14px;text-align:right;color:#282f4b;font-weight:700">{mbrs_quote if mbrs_quote is not None else "â"} '
             f'<span style="font-size:0.7rem;color:#aaa;font-weight:400">(quote)</span></td>'
             f'{_td_int(mbrs_curr)}{_td_int(mbrs_renew)}</tr>'
             f'<tr style="border-bottom:1px solid #f5f5f5">{_td_label("Total Annual")}'
@@ -608,7 +608,7 @@ def main():
         )
         st.markdown(table_html, unsafe_allow_html=True)
 
-        # ── Three comparison metrics below the table ──
+        # ââ Three comparison metrics below the table ââ
         def _color_renewal(v):
             if v is None: return "#888"
             if v >= 50:   return "#e76f51"
@@ -631,20 +631,20 @@ def main():
         deltas_html = (
             '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;'
             'padding:12px 0;border-top:1px dashed #ddd;border-bottom:1px dashed #ddd;margin-bottom:20px">'
-            + _delta("Renewal — Per-Member (true)",
-                     f"{true_incr:+.1f}%" if true_incr is not None else "—",
+            + _delta("Renewal â Per-Member (true)",
+                     f"{true_incr:+.1f}%" if true_incr is not None else "â",
                      _color_renewal(true_incr))
-            + _delta("Renewal — Total (naive)",
-                     f"{naive_incr:+.1f}%" if naive_incr is not None else "—",
+            + _delta("Renewal â Total (naive)",
+                     f"{naive_incr:+.1f}%" if naive_incr is not None else "â",
                      _color_renewal(naive_incr))
             + _delta("FHI vs Renewal",
-                     f"{pos_vs_ren:+.1f}%" if pos_vs_ren is not None else "—",
+                     f"{pos_vs_ren:+.1f}%" if pos_vs_ren is not None else "â",
                      _color_position(pos_vs_ren))
             + '</div>'
         )
         st.markdown(deltas_html, unsafe_allow_html=True)
 
-        # ── Suggested Release Pricing — styled card layout ────────────────────
+        # ââ Suggested Release Pricing â styled card layout ââââââââââââââââââââ
         sug_a = sel.get("SuggestedRelease_Annual")
         sug_m = sel.get("SuggestedRelease_Monthly")
         if sug_a or sug_m:
@@ -665,10 +665,10 @@ def main():
                     f'<div style="margin-top:12px;padding-top:10px;border-top:1px dashed #ddd;'
                     f'font-size:0.78rem">'
                     f'<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
-                    f'<span style="color:#888;font-weight:700">R−20%</span>'
+                    f'<span style="color:#888;font-weight:700">Râ20%</span>'
                     f'<span style="font-weight:700;color:#282f4b">{aggressive}</span></div>'
                     f'<div style="display:flex;justify-content:space-between;margin-bottom:6px">'
-                    f'<span style="color:#888;font-weight:700">FHI base −10% cap</span>'
+                    f'<span style="color:#888;font-weight:700">FHI base â10% cap</span>'
                     f'<span style="font-weight:700;color:#282f4b">{cap}</span></div>'
                     f'<div style="display:flex;justify-content:space-between;'
                     f'padding-top:6px;border-top:1px dotted #eee">'
@@ -678,7 +678,7 @@ def main():
                 )
 
             st.markdown(
-                "<div class='section-label'>Suggested Release Pricing — §12 formula, applied independently to monthly & annual</div>",
+                "<div class='section-label'>Suggested Release Pricing â Â§12 formula, applied independently to monthly & annual</div>",
                 unsafe_allow_html=True,
             )
 
@@ -687,7 +687,7 @@ def main():
                 cards_html += _release_card(
                     "Annual",
                     fmt_money(sug_a),
-                    sel.get("SuggestedRelease_Annual_Binding", "—"),
+                    sel.get("SuggestedRelease_Annual_Binding", "â"),
                     fmt_money(sel.get("SuggestedRelease_Annual_Aggressive")),
                     fmt_money(sel.get("SuggestedRelease_Annual_Cap")),
                 )
@@ -697,7 +697,7 @@ def main():
                 cards_html += _release_card(
                     "Monthly",
                     fmt_money(sug_m),
-                    sel.get("SuggestedRelease_Monthly_Binding", "—"),
+                    sel.get("SuggestedRelease_Monthly_Binding", "â"),
                     fmt_money(sel.get("SuggestedRelease_Monthly_Aggressive")),
                     fmt_money(sel.get("SuggestedRelease_Monthly_Cap")),
                 )
@@ -711,9 +711,9 @@ def main():
                 st.markdown(
                     f'<div style="padding:10px 14px;background:#e8f4f8;border-left:3px solid #006f8e;'
                     f'border-radius:0 6px 6px 0;font-size:0.82rem;color:#555;margin-bottom:10px">'
-                    f'Calculations are <strong style="color:#282f4b">independent</strong> — '
+                    f'Calculations are <strong style="color:#282f4b">independent</strong> â '
                     f'annual reflects the 6% annual-payment discount; monthly does not. '
-                    f'<strong>£{sug_m:,.2f} × 12 = £{annual_equiv:,.2f}</strong> '
+                    f'<strong>Â£{sug_m:,.2f} Ã 12 = Â£{annual_equiv:,.2f}</strong> '
                     f'(un-discounted monthly cost over the year).</div>',
                     unsafe_allow_html=True,
                 )
@@ -721,7 +721,7 @@ def main():
                 st.markdown(
                     f'<div style="padding:10px 14px;background:#fff8e1;border-left:3px solid #e9c46a;'
                     f'border-radius:0 6px 6px 0;font-size:0.82rem;color:#555;margin-bottom:10px">'
-                    f'Quote is currently <strong>{rec}</strong> — suggested prices only applicable '
+                    f'Quote is currently <strong>{rec}</strong> â suggested prices only applicable '
                     f'once any referral is cleared.</div>',
                     unsafe_allow_html=True,
                 )
@@ -737,42 +737,42 @@ def main():
                 )
 
         flags = sel.get("flags", [])
-        st.markdown("#### 03 · Rules Fired")
+        st.markdown("#### 03 Â· Rules Fired")
         if flags:
             for f in flags:
                 render_flag(f)
         else:
-            st.success("No rules fired — all automated checks passed.")
+            st.success("No rules fired â all automated checks passed.")
 
         checks = sel.get("checks", [])
         if checks:
-            with st.expander("04 · Rules Checked (full checklist)", expanded=False):
+            with st.expander("04 Â· Rules Checked (full checklist)", expanded=False):
                 for c in checks:
                     render_check(c)
 
         det = detail.get(str(sel_qno), {})
         members = det.get("members", [])
         if members:
-            with st.expander(f"05 · Member Data ({len(members)} members)", expanded=False):
+            with st.expander(f"05 Â· Member Data ({len(members)} members)", expanded=False):
                 mdf = pd.DataFrame(members)
                 mdf.columns = [c.title() for c in mdf.columns]
                 if "Annual" in mdf.columns:
-                    mdf["Annual"] = mdf["Annual"].apply(lambda v: f"£{v:,.2f}" if pd.notna(v) else "—")
+                    mdf["Annual"] = mdf["Annual"].apply(lambda v: f"Â£{v:,.2f}" if pd.notna(v) else "â")
                 st.dataframe(mdf, use_container_width=True, hide_index=True)
 
-        st.markdown("#### 06 · Manual Checks Required")
-        st.warning("The following cannot be verified from data — **reviewer must check manually before acting:**")
+        st.markdown("#### 06 Â· Manual Checks Required")
+        st.warning("The following cannot be verified from data â **reviewer must check manually before acting:**")
         for ref, rule, detail_txt in [
-            ("§3",  "Over-age dependants",      "Children covered until renewal following 30th birthday"),
-            ("§4",  "Worldwide MHD size",        "If worldwide cover, minimum 20 members for MHD"),
-            ("§5",  "MHD onboarding compliance", "New MHD members must be added within 30 days"),
-            ("§6",  "6-week wait option",         "If current policy has 6-week wait, apply +25% loading"),
-            ("§7",  "Occupation / industry",      "Check for Armed Forces, asbestos, mining, oil/gas, high-hazard"),
-            ("§8",  "Loss ratio",                 "If claims info provided, loss ratio must be <60% to proceed"),
-            ("§9",  "Duplicate quote",            "Check same group quoted by different broker or spelling variation"),
-            ("§12", "Voluntary / employee-paid",  "DECLINE if scheme is voluntary joining or employee-paid"),
-            ("§12", "Opt-in vs opt-out",           "REFER if opt-in (not opt-out) — note in UW comments"),
-            ("§12", "Experience-rated",            "REFER if experience-rated — Senior UW authority required"),
+            ("Â§3",  "Over-age dependants",      "Children covered until renewal following 30th birthday"),
+            ("Â§4",  "Worldwide MHD size",        "If worldwide cover, minimum 20 members for MHD"),
+            ("Â§5",  "MHD onboarding compliance", "New MHD members must be added within 30 days"),
+            ("Â§6",  "6-week wait option",         "If current policy has 6-week wait, apply +25% loading"),
+            ("Â§7",  "Occupation / industry",      "Check for Armed Forces, asbestos, mining, oil/gas, high-hazard"),
+            ("Â§8",  "Loss ratio",                 "If claims info provided, loss ratio must be <60% to proceed"),
+            ("Â§9",  "Duplicate quote",            "Check same group quoted by different broker or spelling variation"),
+            ("Â§12", "Voluntary / employee-paid",  "DECLINE if scheme is voluntary joining or employee-paid"),
+            ("Â§12", "Opt-in vs opt-out",           "REFER if opt-in (not opt-out) â note in UW comments"),
+            ("Â§12", "Experience-rated",            "REFER if experience-rated â Senior UW authority required"),
         ]:
             st.markdown(
                 f'<div class="flag-row flag-info" style="margin-bottom:4px">'
@@ -800,10 +800,10 @@ def main():
             dec_color = {"RELEASE": "#2a9d8f", "REFER": "#e9c46a", "DECLINE": "#e76f51"}.get(d["reviewer_decision"], "#aaa")
             st.markdown(
                 f"<div style='background:#f0fff4;border-radius:8px;padding:14px 18px'>"
-                f"<strong>Decision recorded</strong> — "
+                f"<strong>Decision recorded</strong> â "
                 f"<span style='background:{dec_color};color:white;padding:2px 10px;"
                 f"border-radius:12px;font-weight:700'>{d['reviewer_decision']}</span>"
-                f" by <strong>{d.get('reviewer','—')}</strong> at {str(d.get('reviewer_decided_at',''))[:16]}"
+                f" by <strong>{d.get('reviewer','â')}</strong> at {str(d.get('reviewer_decided_at',''))[:16]}"
                 + (f"<br><em>Reason: {d.get('reviewer_reason','')}</em>" if d.get("reviewer_reason") else "")
                 + "</div>",
                 unsafe_allow_html=True,
@@ -818,9 +818,9 @@ def main():
                 except Exception as e:
                     st.error(f"Could not reopen: {e}")
         else:
-            # Reviewer name — selectbox from authority register
+            # Reviewer name â selectbox from authority register
             # (shared-password apps cannot auto-detect identity via st.user)
-            name_opts = ["— select your name —"] + AUTHORITY_REGISTER
+            name_opts = ["â select your name â"] + AUTHORITY_REGISTER
             saved_name = st.session_state.get("reviewer_name", "")
             try:
                 default_idx = name_opts.index(saved_name) if saved_name in name_opts else 0
@@ -832,28 +832,28 @@ def main():
                 index=default_idx,
                 key=f"rname_{sel_qno}",
             )
-            if r_name and r_name != "— select your name —":
+            if r_name and r_name != "â select your name â":
                 st.session_state["reviewer_name"] = r_name
             else:
                 r_name = ""
 
             with st.expander("Override release premium (optional)", expanded=False):
                 oc = st.columns(2)
-                final_a = oc[0].number_input("Final annual premium (£)", min_value=0.0, step=100.0,
+                final_a = oc[0].number_input("Final annual premium (Â£)", min_value=0.0, step=100.0,
                                               value=float(sug_a) if sug_a else 0.0, key=f"fa_{sel_qno}")
-                final_m = oc[1].number_input("Final monthly premium (£)", min_value=0.0, step=10.0,
+                final_m = oc[1].number_input("Final monthly premium (Â£)", min_value=0.0, step=10.0,
                                               value=float(sug_m) if sug_m else 0.0, key=f"fm_{sel_qno}")
                 use_override_prem = st.checkbox("Use these values in the audit record", key=f"use_prem_{sel_qno}")
 
-            # ── Override reason — always visible so it's available before the click ──
+            # ââ Override reason â always visible so it's available before the click ââ
             override_reason = st.text_area(
-                "Override reason — required only if your decision differs from the system recommendation:",
+                "Override reason â required only if your decision differs from the system recommendation:",
                 key=f"reason_{sel_qno}",
                 height=80,
                 placeholder="e.g. 'Senior UW authorised'; 'Additional broker context received'; ..."
             )
 
-            # ── Brand the primary decision button (matches recommendation) in FHI magenta ──
+            # ââ Brand the primary decision button (matches recommendation) in FHI magenta ââ
             st.markdown("""
                 <style>
                   div[data-testid="stButton"] > button[kind="primary"] {
@@ -881,7 +881,7 @@ def main():
                 is_override = (decision != rec)
                 if is_override and not reason:
                     st.warning(
-                        f"⚠️ You are overriding the system recommendation ({rec} → {decision}). "
+                        f"â ï¸ You are overriding the system recommendation ({rec} â {decision}). "
                         "Please type a reason in the box above, then click the button again."
                     )
                     return
@@ -892,27 +892,27 @@ def main():
                     final_monthly=(final_m if use_override_prem else sug_m),
                 )
                 if decision == "RELEASE":
-                    st.success(f"✅ RELEASE recorded. Reference: **{ref_id}**")
+                    st.success(f"â RELEASE recorded. Reference: **{ref_id}**")
                     st.balloons()
                 elif decision == "REFER":
-                    st.warning(f"⚠️ REFER recorded. Reference: **{ref_id}**")
+                    st.warning(f"â ï¸ REFER recorded. Reference: **{ref_id}**")
                 else:
-                    st.error(f"❌ DECLINE recorded. Reference: **{ref_id}**")
+                    st.error(f"â DECLINE recorded. Reference: **{ref_id}**")
                 st.session_state.pop("selected_quote_no", None)
                 st.rerun()
 
             dcols = st.columns(3)
-            if dcols[0].button("✅ Confirm & Release", key=f"btn_release_{sel_qno}",
+            if dcols[0].button("â Confirm & Release", key=f"btn_release_{sel_qno}",
                                use_container_width=True,
                                type="primary" if rec == "RELEASE" else "secondary"):
                 _attempt_decision("RELEASE")
 
-            if dcols[1].button("⚠️ Confirm & Refer", key=f"btn_refer_{sel_qno}",
+            if dcols[1].button("â ï¸ Confirm & Refer", key=f"btn_refer_{sel_qno}",
                                use_container_width=True,
                                type="primary" if rec == "REFER" else "secondary"):
                 _attempt_decision("REFER")
 
-            if dcols[2].button("❌ Confirm & Decline", key=f"btn_decline_{sel_qno}",
+            if dcols[2].button("â Confirm & Decline", key=f"btn_decline_{sel_qno}",
                                use_container_width=True,
                                type="primary" if rec == "DECLINE" else "secondary"):
                 _attempt_decision("DECLINE")
@@ -920,7 +920,7 @@ def main():
         with st.sidebar:
             st.markdown("### Settings")
             st.markdown(f"**Reviewer:** {st.session_state.get('reviewer_name','Not set')}")
-            if st.button("🔄 Force data refresh"):
+            if st.button("ð Force data refresh"):
                 st.cache_data.clear()
                 st.rerun()
             st.markdown("---")
