@@ -301,7 +301,11 @@ def assess_quote(q, m_sub, c_sub):
             result['flags'].append({'severity': 'INFO', 'rule': 'Headcount changed yr/yr', 'ref': '§2',
                 'detail': f"Members {result['MembersLastYear']} → {result['MembersThisYear']}. Naive {naive:+.1f}% vs true per-member {true_incr:+.1f}%"})
         if our_annual and ren_annual:
-            pos = (our_annual - ren_annual) / ren_annual * 100
+            # Frequency-aware: monthly payers compared on monthly basis (matches how the client pays)
+            if pay_freq == 'Monthly' and our_monthly and ren_monthly:
+                pos = (our_monthly - ren_monthly) / ren_monthly * 100
+            else:
+                pos = (our_annual - ren_annual) / ren_annual * 100
             result['PositionVsRenewal'] = round(pos, 1)
             if is_group and pos < -20:
                 result['flags'].append({'severity': 'REFER', 'rule': 'Discount vs renewal >20%', 'ref': '§4',
