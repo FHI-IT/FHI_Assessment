@@ -1,5 +1,5 @@
 """
-Freedom Health Insurance — Quote Assessment Engine
+Freedom Health Insurance â Quote Assessment Engine
 Aligned to PMI Group New Business Quote Parameters v2.1 (effective 01 Apr 2026)
 
 Pure functions. No I/O. Imported by refresh_dashboard.py.
@@ -10,7 +10,7 @@ import pandas as pd
 
 FREQ_MULT = {'Monthly': 12, 'Quarterly': 4, 'Annually': 1, 'Annual': 1}
 
-# §11 — Authority / Licence Levels
+# Â§11 â Authority / Licence Levels
 AUTHORITY_TABLE = {
     'clare.smith':      ('Clare Smith',      'Assistant Underwriter',    'Level 4',           30_000),
     'Marcus.Artwell':   ('Marcus Artwell',   'Assistant Underwriter',    'Level 4',           30_000),
@@ -22,7 +22,7 @@ AUTHORITY_TABLE = {
     'Hoosh Mires':      ('Hoosh Mires',      'Chief Operating Officer',  'COO',               float('inf')),
 }
 
-# §12 — Per-life refer thresholds by underwriting type
+# Â§12 â Per-life refer thresholds by underwriting type
 PER_LIFE_THRESHOLDS = {
     'Moratorium':       271,
     'CPME':             838,
@@ -32,7 +32,7 @@ PER_LIFE_THRESHOLDS = {
 }
 
 def age_band(avg_age):
-    if avg_age is None: return ('—', 'neutral')
+    if avg_age is None: return ('â', 'neutral')
     if avg_age < 30:  return ('Excellent', 'good')
     if avg_age <= 40: return ('Good',      'good')
     if avg_age <= 50: return ('Fair',      'neutral')
@@ -40,8 +40,8 @@ def age_band(avg_age):
     return ('Decline band', 'bad')
 
 def renewal_band(incr):
-    if incr is None: return ('—', 'neutral')
-    if incr <= 0:    return ('Held / reduced — investigate', 'warn')
+    if incr is None: return ('â', 'neutral')
+    if incr <= 0:    return ('Held / reduced â investigate', 'warn')
     if incr <= 10:   return ('Excellent', 'good')
     if incr <= 20:   return ('Good',      'good')
     if incr <= 35:   return ('Fair',      'neutral')
@@ -49,17 +49,17 @@ def renewal_band(incr):
     return ('Decline (50%+)', 'bad')
 
 def ppl_band(ppl):
-    if ppl is None: return ('—', 'neutral')
-    if ppl < 500:    return ('Poor (<£500)',           'warn')
-    if ppl < 600:    return ('Fair (£500-600)',        'neutral')
-    if ppl < 800:    return ('Good (£600-800)',        'good')
-    if ppl < 1000:   return ('Very Good (£800-1000)',  'good')
-    return ('Excellent (£1000+)', 'good')
+    if ppl is None: return ('â', 'neutral')
+    if ppl < 500:    return ('Poor (<Â£500)',           'warn')
+    if ppl < 600:    return ('Fair (Â£500-600)',        'neutral')
+    if ppl < 800:    return ('Good (Â£600-800)',        'good')
+    if ppl < 1000:   return ('Very Good (Â£800-1000)',  'good')
+    return ('Excellent (Â£1000+)', 'good')
 
 def parse_money(v):
-    """Parse £-formatted strings like '£8,861.69' to float."""
+    """Parse Â£-formatted strings like 'Â£8,861.69' to float."""
     if pd.isna(v): return None
-    m = re.search(r'£?([\d,]+\.?\d*)', str(v))
+    m = re.search(r'Â£?([\d,]+\.?\d*)', str(v))
     if not m: return None
     try: return float(m.group(1).replace(',', ''))
     except: return None
@@ -169,28 +169,28 @@ def assess_quote(q, m_sub, c_sub):
     }
     is_group = result['CorpOrInd'] == 1 and result['NumMembers'] >= 3
 
-    # §6 Location
+    # Â§6 Location
     if is_iom_ci:
-        result['flags'].append({'severity': 'DECLINE', 'rule': 'Location (CI / IOM)', 'ref': '§6, §12',
-            'detail': f"Postcode {postcode} indicates Channel Islands / Isle of Man — decline due to legal restrictions"})
-    result['checks'].append({'rule': 'Location not CI/IOM', 'ref': '§6', 'status': 'fail' if is_iom_ci else 'pass', 'detail': postcode or '(no postcode)'})
+        result['flags'].append({'severity': 'DECLINE', 'rule': 'Location (CI / IOM)', 'ref': 'Â§6, Â§12',
+            'detail': f"Postcode {postcode} indicates Channel Islands / Isle of Man â decline due to legal restrictions"})
+    result['checks'].append({'rule': 'Location not CI/IOM', 'ref': 'Â§6', 'status': 'fail' if is_iom_ci else 'pass', 'detail': postcode or '(no postcode)'})
 
-    # §12 Switching with missing premium info
+    # Â§12 Switching with missing premium info
     if is_switch and (not cur_annual or not ren_annual):
         missing = []
         if not cur_annual: missing.append('current')
         if not ren_annual: missing.append('renewal')
-        result['flags'].append({'severity': 'DECLINE', 'rule': 'Switch with missing premium info', 'ref': '§12',
+        result['flags'].append({'severity': 'DECLINE', 'rule': 'Switch with missing premium info', 'ref': 'Â§12',
             'detail': f"Switch quote from {cur_insurer} but {' & '.join(missing)} premium not provided"})
-        result['checks'].append({'rule': 'Switch info complete', 'ref': '§12', 'status': 'fail', 'detail': f"missing: {', '.join(missing)}"})
+        result['checks'].append({'rule': 'Switch info complete', 'ref': 'Â§12', 'status': 'fail', 'detail': f"missing: {', '.join(missing)}"})
     elif is_switch:
-        result['checks'].append({'rule': 'Switch info complete', 'ref': '§12', 'status': 'pass', 'detail': f"vs {cur_insurer}"})
+        result['checks'].append({'rule': 'Switch info complete', 'ref': 'Â§12', 'status': 'pass', 'detail': f"vs {cur_insurer}"})
 
-    # §4 Group size
+    # Â§4 Group size
     if is_group:
-        result['checks'].append({'rule': 'Group Size ≥3', 'ref': '§4', 'status': 'pass', 'detail': f"{result['NumMembers']} members"})
+        result['checks'].append({'rule': 'Group Size â¥3', 'ref': 'Â§4', 'status': 'pass', 'detail': f"{result['NumMembers']} members"})
 
-    # §3 Weighted average age
+    # Â§3 Weighted average age
     if not m_sub.empty and 'Insured Age' in m_sub.columns:
         ages = pd.to_numeric(m_sub['Insured Age'], errors='coerce')
         prems = pd.to_numeric(m_sub.get('Annual Premium'), errors='coerce') if 'Annual Premium' in m_sub.columns else pd.Series([], dtype=float)
@@ -216,25 +216,25 @@ def assess_quote(q, m_sub, c_sub):
             result['AvgAgeBandClass'] = band_class
 
             if avg_age >= 57:
-                result['flags'].append({'severity': 'DECLINE', 'rule': 'Weighted Avg Age ≥57', 'ref': '§3, §12',
-                    'detail': f"Weighted avg age {avg_age:.2f} (decline at ≥57; simple avg {avg_age_simple:.2f})"})
+                result['flags'].append({'severity': 'DECLINE', 'rule': 'Weighted Avg Age â¥57', 'ref': 'Â§3, Â§12',
+                    'detail': f"Weighted avg age {avg_age:.2f} (decline at â¥57; simple avg {avg_age_simple:.2f})"})
             elif avg_age > 55:
-                result['flags'].append({'severity': 'REFER', 'rule': 'Weighted Avg Age >55', 'ref': '§3, §12',
+                result['flags'].append({'severity': 'REFER', 'rule': 'Weighted Avg Age >55', 'ref': 'Â§3, Â§12',
                     'detail': f"Weighted avg age {avg_age:.2f} (refer above 55; simple avg {avg_age_simple:.2f})"})
-            result['checks'].append({'rule': 'Weighted avg age <57', 'ref': '§3',
+            result['checks'].append({'rule': 'Weighted avg age <57', 'ref': 'Â§3',
                 'status': 'pass' if avg_age <= 55 else 'refer' if avg_age < 57 else 'fail',
                 'detail': f"{avg_age:.2f} ({band_name})"})
 
             if is_group and over_70 > 0:
                 if result['NumMembers'] < 10:
-                    result['flags'].append({'severity': 'REFER', 'rule': 'Member(s) 70+ in small group', 'ref': '§3',
+                    result['flags'].append({'severity': 'REFER', 'rule': 'Member(s) 70+ in small group', 'ref': 'Â§3',
                         'detail': f"{over_70} member(s) over 70 in a {result['NumMembers']}-life group (<10)"})
                 else:
-                    result['flags'].append({'severity': 'REFER', 'rule': 'Member(s) 70+', 'ref': '§3',
-                        'detail': f"{over_70} member(s) over 70 — acceptable in 10+ groups if premium strong"})
-            result['checks'].append({'rule': 'No members 70+', 'ref': '§3', 'status': 'pass' if over_70 == 0 else 'refer', 'detail': f"{over_70} over 70"})
+                    result['flags'].append({'severity': 'REFER', 'rule': 'Member(s) 70+', 'ref': 'Â§3',
+                        'detail': f"{over_70} member(s) over 70 â acceptable in 10+ groups if premium strong"})
+            result['checks'].append({'rule': 'No members 70+', 'ref': 'Â§3', 'status': 'pass' if over_70 == 0 else 'refer', 'detail': f"{over_70} over 70"})
 
-    # §5 Underwriting basis & mix
+    # Â§5 Underwriting basis & mix
     uw_types = {}
     dominant_uw = None
     if not m_sub.empty and 'underwriting Type' in m_sub.columns:
@@ -249,19 +249,19 @@ def assess_quote(q, m_sub, c_sub):
         dominant_uw = max(uw_types, key=uw_types.get) if uw_types else None
         result['DominantUW'] = dominant_uw
 
-        # §4/§12 — PURE MHD scheme size minimum (only applies when 100% MHD)
+        # Â§4/Â§12 â PURE MHD scheme size minimum (only applies when 100% MHD)
         if pure_mhd and is_group and n_total < 30:
-            result['flags'].append({'severity': 'DECLINE', 'rule': 'Pure MHD scheme <30 (UK)', 'ref': '§4, §12',
-                'detail': f"Pure MHD scheme has {n_total} members; UK minimum 30 (worldwide minimum 20 — verify manually)"})
+            result['flags'].append({'severity': 'DECLINE', 'rule': 'Pure MHD scheme <30 (UK)', 'ref': 'Â§4, Â§12',
+                'detail': f"Pure MHD scheme has {n_total} members; UK minimum 30 (worldwide minimum 20 â verify manually)"})
 
-        # §5/§12 — MIXED UW with MHD: decline if >25% MHD, refer otherwise
+        # Â§5/Â§12 â MIXED UW with MHD: decline if >25% MHD, refer otherwise
         if mixed:
             if mhd_pct > 25:
-                result['flags'].append({'severity': 'DECLINE', 'rule': 'Mixed UW >25% MHD', 'ref': '§5, §12',
-                    'detail': f"{mhd_count}/{n_total} on MHD ({mhd_pct:.0f}%) — exceeds 25% threshold"})
+                result['flags'].append({'severity': 'DECLINE', 'rule': 'Mixed UW >25% MHD', 'ref': 'Â§5, Â§12',
+                    'detail': f"{mhd_count}/{n_total} on MHD ({mhd_pct:.0f}%) â exceeds 25% threshold"})
             else:
-                result['flags'].append({'severity': 'REFER', 'rule': 'Mixed UW with MHD', 'ref': '§5',
-                    'detail': f"{mhd_count} MHD + {n_total - mhd_count} other ({mhd_pct:.0f}% MHD ≤25%)"})
+                result['flags'].append({'severity': 'REFER', 'rule': 'Mixed UW with MHD', 'ref': 'Â§5',
+                    'detail': f"{mhd_count} MHD + {n_total - mhd_count} other ({mhd_pct:.0f}% MHD â¤25%)"})
 
         # Check log entry summarising UW mix
         if pure_mhd and n_total < 30:
@@ -272,16 +272,16 @@ def assess_quote(q, m_sub, c_sub):
             uw_check_status = 'refer'
         else:
             uw_check_status = 'pass'
-        result['checks'].append({'rule': 'UW mix', 'ref': '§5',
+        result['checks'].append({'rule': 'UW mix', 'ref': 'Â§5',
             'status': uw_check_status,
             'detail': f"{', '.join(f'{k}:{v}' for k,v in uw_types.items() if k)}"})
 
-        # §5 — MHD on switch business (verify previous scheme was MHD)
+        # Â§5 â MHD on switch business (verify previous scheme was MHD)
         if mhd_count > 0 and is_switch:
-            result['flags'].append({'severity': 'REFER', 'rule': 'MHD on switch business', 'ref': '§5',
-                'detail': f"MHD requested with switch from {cur_insurer} — verify previous scheme was MHD for 3+ years"})
+            result['flags'].append({'severity': 'REFER', 'rule': 'MHD on switch business', 'ref': 'Â§5',
+                'detail': f"MHD requested with switch from {cur_insurer} â verify previous scheme was MHD for 3+ years"})
 
-    # §2 Renewal increase
+    # Â§2 Renewal increase
     true_incr = result['TrueRenewalIncrease']
     naive = result['NaiveRenewalIncrease']
     if true_incr is not None:
@@ -289,42 +289,47 @@ def assess_quote(q, m_sub, c_sub):
         result['RenewalBand'] = band_name
         result['RenewalBandClass'] = band_class
         if true_incr >= 50:
-            result['flags'].append({'severity': 'DECLINE', 'rule': 'Renewal Increase ≥50% (per-member)', 'ref': '§2, §12',
+            result['flags'].append({'severity': 'DECLINE', 'rule': 'Renewal Increase â¥50% (per-member)', 'ref': 'Â§2, Â§12',
                 'detail': f"+{true_incr:.1f}% per-member yr/yr"})
         elif true_incr <= 0:
-            result['flags'].append({'severity': 'REFER', 'rule': 'Held / reduced renewal', 'ref': '§2',
-                'detail': f"{true_incr:+.1f}% — investigate why"})
-        result['checks'].append({'rule': 'Renewal incr <50% (per-mbr)', 'ref': '§2',
+            result['flags'].append({'severity': 'REFER', 'rule': 'Held / reduced renewal', 'ref': 'Â§2',
+                'detail': f"{true_incr:+.1f}% â investigate why"})
+        result['checks'].append({'rule': 'Renewal incr <50% (per-mbr)', 'ref': 'Â§2',
             'status': 'pass' if 0 < true_incr < 50 else 'refer' if true_incr <= 0 else 'fail',
             'detail': f"{true_incr:+.1f}% ({band_name})"})
         if headcount_changed and naive is not None and abs(true_incr - naive) > 5:
-            result['flags'].append({'severity': 'INFO', 'rule': 'Headcount changed yr/yr', 'ref': '§2',
-                'detail': f"Members {result['MembersLastYear']} → {result['MembersThisYear']}. Naive {naive:+.1f}% vs true per-member {true_incr:+.1f}%"})
+            result['flags'].append({'severity': 'INFO', 'rule': 'Headcount changed yr/yr', 'ref': 'Â§2',
+                'detail': f"Members {result['MembersLastYear']} â {result['MembersThisYear']}. Naive {naive:+.1f}% vs true per-member {true_incr:+.1f}%"})
         if our_annual and ren_annual:
             pos = (our_annual - ren_annual) / ren_annual * 100
             result['PositionVsRenewal'] = round(pos, 1)
             if is_group and pos < -20:
-                result['flags'].append({'severity': 'REFER', 'rule': 'Discount vs renewal >20%', 'ref': '§4',
+                result['flags'].append({'severity': 'REFER', 'rule': 'Discount vs renewal >20%', 'ref': 'Â§4',
                     'detail': f"Our quote {pos:.1f}% under renewal (>20% requires Senior UW)"})
 
     if q.get('2YearFixedRate'):
-        result['flags'].append({'severity': 'REFER', 'rule': '2-Year Fixed Rate', 'ref': '§2',
+        result['flags'].append({'severity': 'REFER', 'rule': '2-Year Fixed Rate', 'ref': 'Â§2',
             'detail': 'Decline unless claims information is provided; verify and assess'})
 
     if discount > 0:
         if discount > 15:
-            result['flags'].append({'severity': 'REFER', 'rule': 'Discount >15%', 'ref': '§4, §11',
-                'detail': f"{discount}% exceeds Senior UW authority — refer to carrier"})
+            result['flags'].append({'severity': 'REFER', 'rule': 'Discount >15%', 'ref': 'Â§4, Â§11',
+                'detail': f"{discount}% exceeds Senior UW authority â refer to carrier"})
         elif discount > 10:
-            result['flags'].append({'severity': 'REFER', 'rule': 'Discount >10%', 'ref': '§4',
-                'detail': f"{discount}% — Senior UW authority required"})
+            result['flags'].append({'severity': 'REFER', 'rule': 'Discount >10%', 'ref': 'Â§4',
+                'detail': f"{discount}% â Senior UW authority required"})
         elif discount > 5:
-            result['flags'].append({'severity': 'INFO', 'rule': 'Discount 5-10%', 'ref': '§4',
-                'detail': f"{discount}% — Senior UW / COO authority required"})
+            result['flags'].append({'severity': 'INFO', 'rule': 'Discount 5-10%', 'ref': 'Â§4',
+                'detail': f"{discount}% â Senior UW / COO authority required"})
 
-    # §4 / §12 Premium per life and per-UW-type thresholds
-    if is_group and result['NumMembers'] > 0 and our_annual:
-        ppl = our_annual / result['NumMembers']
+    # Â§4 / Â§12 Premium per life and per-UW-type thresholds
+    if is_group and result['NumMembers'] > 0 and (our_annual or our_monthly):
+        # Use monthly x 12 when client pays monthly; annual otherwise.
+        # E.g. monthly total x 12 / members gives correct annualised cost-per-life.
+        if pay_freq == 'Monthly' and our_monthly:
+            ppl = (our_monthly * 12) / result['NumMembers']
+        else:
+            ppl = our_annual / result['NumMembers']
         result['PremPerLife'] = round(ppl, 0)
         band_name, band_class = ppl_band(ppl)
         result['PremPerLifeBand'] = band_name
@@ -333,15 +338,15 @@ def assess_quote(q, m_sub, c_sub):
             threshold = PER_LIFE_THRESHOLDS.get(dominant_uw)
             if threshold and ppl < threshold:
                 result['flags'].append({'severity': 'REFER',
-                    'rule': f'Premium / life below {dominant_uw} threshold', 'ref': '§12',
-                    'detail': f"£{ppl:,.0f} < £{threshold:,} (refer threshold for {dominant_uw})"})
-                result['checks'].append({'rule': f'Prem/life ≥ {dominant_uw} threshold', 'ref': '§12',
-                    'status': 'refer', 'detail': f"£{ppl:,.0f} / £{threshold:,}"})
+                    'rule': f'Premium / life below {dominant_uw} threshold', 'ref': 'Â§12',
+                    'detail': f"Â£{ppl:,.0f} < Â£{threshold:,} (refer threshold for {dominant_uw})"})
+                result['checks'].append({'rule': f'Prem/life â¥ {dominant_uw} threshold', 'ref': 'Â§12',
+                    'status': 'refer', 'detail': f"Â£{ppl:,.0f} / Â£{threshold:,}"})
             elif threshold:
-                result['checks'].append({'rule': f'Prem/life ≥ {dominant_uw} threshold', 'ref': '§12',
-                    'status': 'pass', 'detail': f"£{ppl:,.0f} ≥ £{threshold:,}"})
+                result['checks'].append({'rule': f'Prem/life â¥ {dominant_uw} threshold', 'ref': 'Â§12',
+                    'status': 'pass', 'detail': f"Â£{ppl:,.0f} â¥ Â£{threshold:,}"})
 
-    # §11 Authority / licence level
+    # Â§11 Authority / licence level
     auth = lookup_authority(q.get('WhoCreated'))
     if auth:
         name, role, level, max_p = auth
@@ -349,25 +354,49 @@ def assess_quote(q, m_sub, c_sub):
         result['CreatorLicence'] = level
         result['CreatorMaxPremium'] = max_p if max_p != float('inf') else None
         if our_annual and our_annual > max_p:
-            result['flags'].append({'severity': 'REFER', 'rule': 'Premium exceeds creator authority', 'ref': '§11',
-                'detail': f"£{our_annual:,.0f} > £{max_p:,.0f} cap ({role}, {level})"})
+            result['flags'].append({'severity': 'REFER', 'rule': 'Premium exceeds creator authority', 'ref': 'Â§11',
+                'detail': f"Â£{our_annual:,.0f} > Â£{max_p:,.0f} cap ({role}, {level})"})
     elif q.get('WhoCreated'):
         result['CreatorRole'] = 'Not on authority register'
         result['CreatorLicence'] = None
         result['CreatorMaxPremium'] = None
 
-# ===== §12 Release Quote suggested price =====
+# ===== Â§12 Release Quote suggested price =====
     # The monthly figure is the un-discounted house reference. The annual figure is
     # derived from monthly by applying FHI's standard 6% annual-payment discount.
-    # This guarantees monthly × 12 > annual — matching how FHI invoices clients.
+    # This guarantees monthly Ã 12 > annual â matching how FHI invoices clients.
     FHI_ANNUAL_DISCOUNT = 0.06
     fhi_monthly_base = our_monthly / (1 - discount/100) if (our_monthly and discount and discount > 0) else our_monthly
 
     if our_monthly and ren_monthly and fhi_monthly_base:
-        m_aggressive = ren_monthly * 0.80           # R−20% (monthly)
-        m_cap        = fhi_monthly_base * 0.90      # FHI base −10% (monthly)
-        m_suggested  = max(m_aggressive, m_cap)
-        binding      = 'R-20%' if m_aggressive >= m_cap else 'FHI base -10% cap'
+        m_aggressive = ren_monthly * 0.80           # R-20% (monthly)
+        m_cap        = fhi_monthly_base * 0.90      # FHI base -10% (monthly)
+
+        # Key Health Partnership arrangement: KHP holds a discretionary 10% discount
+        # on top of any FHI quote. Therefore FHI must quote at base rate (no -10% cap)
+        # so that after KHP applies their 10%, the effective floor is FHI base -10%.
+        broker_val = (result.get('Broker') or '').strip()
+        is_khp = 'key health' in broker_val.lower()
+        if is_khp:
+            m_suggested = fhi_monthly_base          # Cap at FHI base rate for KHP
+            binding     = 'FHI base rate (KHP 10% discount arrangement)'
+        else:
+            m_suggested = max(m_aggressive, m_cap)
+            binding     = 'R-20%' if m_aggressive >= m_cap else 'FHI base -10% cap'
+
+        # Add a REFER flag when quoting for Key Health Partnership
+        if is_khp:
+            result['flags'].append({
+                'severity': 'REFER',
+                'rule': 'Key Health Partnership broker',
+                'ref': 'KHP Agreement',
+                'detail': (
+                    'Quote referred: KHP holds a 10% discretionary discount. '
+                    'FHI is quoting at base rate; after KHP discount the effective '
+                    'floor is FHI base −10%. Suggested monthly release price shown '
+                    'is FHI base rate only.'
+                )
+            })
 
         result['SuggestedRelease_Monthly']            = round(m_suggested, 2)
         result['SuggestedRelease_Monthly_Aggressive'] = round(m_aggressive, 2)
@@ -375,7 +404,7 @@ def assess_quote(q, m_sub, c_sub):
         result['SuggestedRelease_Monthly_Binding']    = binding
 
         # Derive annual figures from monthly using FHI's 6% annual-payment discount.
-        # Same binding rule applies — annual is just the monthly result × 12 × 0.94.
+        # Same binding rule applies â annual is just the monthly result Ã 12 Ã 0.94.
         annual_factor = 12 * (1 - FHI_ANNUAL_DISCOUNT)
         result['SuggestedRelease_Annual']            = round(m_suggested  * annual_factor, 2)
         result['SuggestedRelease_Annual_Aggressive'] = round(m_aggressive * annual_factor, 2)
@@ -383,7 +412,7 @@ def assess_quote(q, m_sub, c_sub):
         result['SuggestedRelease_Annual_Binding']    = binding
 
     if result['EliteLondonHospitals']:
-        result['checks'].append({'rule': 'London hospitals selected (+35%)', 'ref': '§6', 'status': 'info', 'detail': 'Loading applies'})
+        result['checks'].append({'rule': 'London hospitals selected (+35%)', 'ref': 'Â§6', 'status': 'info', 'detail': 'Loading applies'})
 
     if is_unpriced:
         result['flags'].append({'severity': 'INFO', 'rule': 'Unpriced quote', 'detail': 'Awaiting CRM premium calculation'})
