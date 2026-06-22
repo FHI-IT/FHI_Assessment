@@ -562,6 +562,8 @@ def main():
         )
 
         our_a = sel.get("OurAnnual");  our_m = sel.get("OurMonthly")
+        # FHI per-member basis: monthly payers invoiced as monthly*12 (matches PremPerLife), not the raw annual figure
+        fhi_avg_basis = (our_m * 12) if (sel.get("PaymentFrequency") == "Monthly" and our_m) else our_a
         cur_a = sel.get("CurAnnual");  cur_m = sel.get("CurMonthly")
         ren_a = sel.get("RenAnnual");  ren_m = sel.get("RenMonthly")
         mbrs_quote = sel.get("NumMembers")
@@ -602,7 +604,7 @@ def main():
             f'<tr style="border-bottom:1px solid #f5f5f5">{_td_label("Total Monthly")}'
             f'{_td_money(our_m, magenta, "800")}{_td_money(cur_m)}{_td_money(ren_m)}</tr>'
             f'<tr>{_td_label("Avg / Member / Yr")}'
-            f'<td style="padding:10px 14px;text-align:right;color:{magenta};font-weight:800">{_avg(our_a, mbrs_quote)}</td>'
+            f'<td style="padding:10px 14px;text-align:right;color:{magenta};font-weight:800">{_avg(fhi_avg_basis, mbrs_quote)}</td>'
             f'<td style="padding:10px 14px;text-align:right;color:#282f4b;font-weight:700">{_avg(cur_a, mbrs_curr)}</td>'
             f'<td style="padding:10px 14px;text-align:right;color:#282f4b;font-weight:700">{_avg(ren_a, mbrs_renew)}</td></tr>'
             '</tbody></table>'
