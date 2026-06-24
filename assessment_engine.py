@@ -412,12 +412,22 @@ def assess_quote(q, m_sub, c_sub):
         result['SuggestedRelease_Monthly_Cap']        = round(m_cap, 2)
         result['SuggestedRelease_Monthly_Binding']    = binding
 
-        # Derive annual figures from monthly using FHI's 6% annual-payment discount.
-        # Same binding rule applies — annual is just the monthly result × 12 × 0.94.
-        annual_factor = 12 * (1 - FHI_ANNUAL_DISCOUNT)
-        result['SuggestedRelease_Annual']            = round(m_suggested  * annual_factor, 2)
-        result['SuggestedRelease_Annual_Aggressive'] = round(m_aggressive * annual_factor, 2)
-        result['SuggestedRelease_Annual_Cap']        = round(m_cap        * annual_factor, 2)
+        # Annual figures.
+        # R-20% is anchored to the CURRENT INSURER's renewal offer (their own
+        # commercial premium). We must NOT apply FHI's 6% annual-payment
+        # discount to it - the annual R-20% is simply a 20% reduction of the
+        # annual renewal. The FHI base -10% cap IS FHI's own pricing, so the
+        # 6% annual discount still applies to it.
+        fhi_annual_factor = 12 * (1 - FHI_ANNUAL_DISCOUNT)
+        a_cap = m_cap * fhi_annual_factor
+        if is_khp:
+            a_aggressive = (ren_annual * 0.90) if ren_annual else (m_aggressive * 12)
+        else:
+            a_aggressive = (ren_annual * 0.80) if ren_annual else (m_aggressive * 12)
+        a_suggested = max(a_aggressive, a_cap)
+        result['SuggestedRelease_Annual']            = round(a_suggested, 2)
+        result['SuggestedRelease_Annual_Aggressive'] = round(a_aggressive, 2)
+        result['SuggestedRelease_Annual_Cap']        = round(a_cap, 2)
         result['SuggestedRelease_Annual_Binding']    = binding
 
     if result['EliteLondonHospitals']:
