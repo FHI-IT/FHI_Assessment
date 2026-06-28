@@ -195,7 +195,7 @@ def fetch_data():
         client.from_(T_QUOTES)
               .select("*")
               .eq("QuoteStatus", awaiting_id)
-              .is_("Policy Number", "null")
+              .or_("Policy Number.is.null,Policy Number.eq.")
               .not_.is_("Broker", "null")
               .order("DateEntered", desc=True)
               .execute()
