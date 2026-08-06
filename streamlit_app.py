@@ -8,7 +8,8 @@ import math
 import json
 import random
 import string
-from datetime import datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 import pandas as pd
@@ -268,7 +269,7 @@ def get_decided_quote_ids(client, quote_nos):
 
 def generate_reference_id(quote_no: int) -> str:
     suffix = "".join(random.choices(string.ascii_uppercase + string.digits, k=4))
-    return f"FHI-A-{datetime.now():%Y-%m-%d}-{quote_no}-{suffix}"
+    return f"FHI-A-{datetime.now(ZoneInfo('Europe/London')):%Y-%m-%d}-{quote_no}-{suffix}"
 
 
 def get_or_create_log_entry(client, assessment: dict) -> str:
@@ -317,7 +318,7 @@ def record_reviewer_decision(client, ref_id, decision, system_rec,
     client.from_(T_LOG).update({
         "reviewer":            st.session_state.get("reviewer_name", "Unknown"),
         "reviewer_decision":   decision,
-        "reviewer_decided_at": datetime.utcnow().isoformat(),
+        "reviewer_decided_at": datetime.now(timezone.utc).isoformat(),
         "reviewer_override":   is_override,
         "reviewer_reason":     override_reason if is_override else None,
         "final_premium_annual":  final_annual,
@@ -375,7 +376,7 @@ def main():
     with cols[2]:
         st.markdown(
             f"<div style='text-align:right;font-size:0.8rem;color:#888'>"
-            f"<strong>{datetime.now().strftime('%d %b %Y · %H:%M')}</strong><br>"
+            f"<strong>{datetime.now(ZoneInfo('Europe/London')).strftime('%d %b %Y · %H:%M')}</strong><br>"
             f"Reviewer: {st.session_state.get('reviewer_name') or 'Not yet selected'}</div>",
             unsafe_allow_html=True,
         )
