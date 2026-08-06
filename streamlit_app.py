@@ -197,6 +197,7 @@ def fetch_data():
               .eq("QuoteStatus", awaiting_id)
               .or_("Policy Number.is.null,Policy Number.eq.")
               .not_.is_("Broker", "null")
+              .not_.eq("Cover Id", 21)
               .order("DateEntered", desc=True)
               .execute()
     ).data or []
