@@ -8,6 +8,7 @@ import math
 import json
 import random
 import string
+from collections import Counter
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from pathlib import Path
@@ -244,6 +245,15 @@ def fetch_data():
             "member_count_total": len(msub),
         }
     assessments.sort(key=lambda x: x.get("QuoteNo", 0))  # ascending quote number order
+
+    # Detect QuoteNo collisions (two different quotes sharing a QuoteNo — a
+    # versioning/data-model quirk). Member & category data are keyed by QuoteNo
+    # only, so colliding quotes share member data and at least one will show the
+    # wrong company's figures. Tag them so the UI can warn the reviewer.
+    qno_counts = Counter(a.get("QuoteNo") for a in assessments)
+    for a in assessments:
+        a["_qno_collision"] = qno_counts.get(a.get("QuoteNo"), 0) > 1
+
     return assessments, detail
 
 
@@ -461,6 +471,12 @@ def main():
             mbrs = a.get("NumMembers", "?")
             broker_short = (a.get("Broker") or "")[:32]
             our_annual = fmt_money(a.get("OurAnnual"))
+            collision_tag = (
+                '<span style="background:#c0392b;color:white;padding:0 5px;'
+                'border-radius:4px;font-size:0.62rem;font-weight:800;'
+                'letter-spacing:0.03em;margin-right:5px">&#9888; COLLISION</span>'
+                if a.get("_qno_collision") else ""
+            )
 
             card_html = (
                 f'<div style="background:{bg};border-radius:8px;padding:9px 12px;'
@@ -475,7 +491,7 @@ def main():
                 f'flex-shrink:0">{rec}</span></div>'
                 f'<div style="font-size:0.72rem;color:#888;margin-top:2px;'
                 f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
-                f'#{qno} · {mbrs} mbrs · {avg_age_str} · {broker_short}</div>'
+                f'{collision_tag}#{qno} · {mbrs} mbrs · {avg_age_str} · {broker_short}</div>'
                 f'<div style="font-size:0.8rem;color:#282f4b;font-weight:700;margin-top:1px">'
                 f'{our_annual}/yr</div></div>'
             )
@@ -518,6 +534,22 @@ def main():
             f"&nbsp; <strong>System recommendation:</strong> {sel.get('recommendation_reason','')}</div>",
             unsafe_allow_html=True,
         )
+
+        if sel.get("_qno_collision"):
+            other = [a.get("QuoteName", "—") for a in assessments
+                     if a.get("QuoteNo") == sel.get("QuoteNo")
+                     and a.get("QuoteVer") != sel.get("QuoteVer")]
+            others_txt = ", ".join(other) if other else "another quote"
+            st.markdown(
+                f'<div style="padding:14px 18px;background:#fdecea;border:2px solid #e76f51;'
+                f'border-radius:8px;margin:12px 0;font-size:0.9rem;color:#282f4b">'
+                f'<strong style="color:#c0392b">⚠️ Data collision — do not action from this screen.</strong><br>'
+                f'This quote shares its QuoteNo ({sel.get("QuoteNo")}) with {others_txt}. '
+                f'Member data, quote facts, and the recommendation below are drawn from shared '
+                f'records and may belong to the other quote. Verify manually in the CRM before '
+                f'making any decision.</div>',
+                unsafe_allow_html=True,
+            )
 
         st.markdown("<div class='ref-id-label'>AUDIT REFERENCE — paste into CRM note field</div>", unsafe_allow_html=True)
         st.code(ref_id, language=None)
@@ -918,21 +950,27 @@ def main():
                 st.session_state.pop("selected_quote_key", None)
                 st.rerun()
 
-            dcols = st.columns(3)
-            if dcols[0].button("✅ Confirm & Release", key=f"btn_release_{sel_key}",
-                               use_container_width=True,
-                               type="primary" if rec == "RELEASE" else "secondary"):
-                _attempt_decision("RELEASE")
+            if sel.get("_qno_collision"):
+                st.error(
+                    "⛔ Decision recording is disabled for this quote due to a data "
+                    "collision (shared QuoteNo). Resolve in the CRM first."
+                )
+            else:
+                dcols = st.columns(3)
+                if dcols[0].button("✅ Confirm & Release", key=f"btn_release_{sel_key}",
+                                   use_container_width=True,
+                                   type="primary" if rec == "RELEASE" else "secondary"):
+                    _attempt_decision("RELEASE")
 
-            if dcols[1].button("⚠️ Confirm & Refer", key=f"btn_refer_{sel_key}",
-                               use_container_width=True,
-                               type="primary" if rec == "REFER" else "secondary"):
-                _attempt_decision("REFER")
+                if dcols[1].button("⚠️ Confirm & Refer", key=f"btn_refer_{sel_key}",
+                                   use_container_width=True,
+                                   type="primary" if rec == "REFER" else "secondary"):
+                    _attempt_decision("REFER")
 
-            if dcols[2].button("❌ Confirm & Decline", key=f"btn_decline_{sel_key}",
-                               use_container_width=True,
-                               type="primary" if rec == "DECLINE" else "secondary"):
-                _attempt_decision("DECLINE")
+                if dcols[2].button("❌ Confirm & Decline", key=f"btn_decline_{sel_key}",
+                                   use_container_width=True,
+                                   type="primary" if rec == "DECLINE" else "secondary"):
+                    _attempt_decision("DECLINE")
 
         with st.sidebar:
             st.markdown("### Settings")
