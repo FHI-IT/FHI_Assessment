@@ -267,6 +267,17 @@ def get_decided_quote_ids(client, quote_nos):
         return set()
 
 
+def _row_key(a: dict) -> str:
+    """Unique per-row selection token for the queue.
+
+    QuoteVer is unique per quote version; QuoteNo can collide across versions
+    (a V2 quote gets a fresh QuoteNo that may match another quote's QuoteNo),
+    so it is only a fallback when QuoteVer is absent.
+    """
+    qv = a.get("QuoteVer", "")
+    return str(qv) if qv else str(a["QuoteNo"])
+
+
 def generate_reference_id(quote_no: int) -> str:
     suffix = "".join(random.choices(string.ascii_uppercase + string.digits, k=4))
     return f"FHI-A-{datetime.now(ZoneInfo('Europe/London')):%Y-%m-%d}-{quote_no}-{suffix}"
@@ -431,18 +442,19 @@ def main():
         if not visible:
             st.caption(f"No quotes matching '{filter_sel}'")
 
-        opts = {a["QuoteNo"]: f"{a.get('QuoteName','—')} #{a['QuoteNo']} [{a['recommendation']}]"
+        opts = {_row_key(a): f"{a.get('QuoteName','—')} #{a['QuoteNo']} [{a['recommendation']}]"
                 for a in visible}
-        if "selected_quote_no" not in st.session_state or \
-                st.session_state["selected_quote_no"] not in opts:
-            st.session_state["selected_quote_no"] = list(opts.keys())[0] if opts else None
+        if "selected_quote_key" not in st.session_state or \
+                st.session_state["selected_quote_key"] not in opts:
+            st.session_state["selected_quote_key"] = list(opts.keys())[0] if opts else None
 
         # ── Queue list — compact selectable cards ──────────────────────────────
         for a in visible:
             qno = a["QuoteNo"]
+            row_key = _row_key(a)
             rec = a["recommendation"]
             badge_color = {"RELEASE": "#2a9d8f", "REFER": "#e9c46a", "DECLINE": "#e76f51"}.get(rec, "#aaa")
-            is_selected = st.session_state.get("selected_quote_no") == qno
+            is_selected = st.session_state.get("selected_quote_key") == row_key
             bg = "#f0f4ff" if is_selected else "white"
             avg_age = a.get("AvgMemberAge")
             avg_age_str = f"avg {avg_age:.1f}" if avg_age else ""
@@ -469,18 +481,18 @@ def main():
             )
             st.markdown(card_html, unsafe_allow_html=True)
 
-            if st.button("Select this quote", key=f"sel_{qno}", use_container_width=True):
-                st.session_state["selected_quote_no"] = qno
+            if st.button("Select this quote", key=f"sel_{row_key}", use_container_width=True):
+                st.session_state["selected_quote_key"] = row_key
                 for k in ["pending_decision", "override_reason", "final_annual", "final_monthly"]:
                     st.session_state.pop(k, None)
                 st.rerun()
 
     with right:
-        sel_qno = st.session_state.get("selected_quote_no")
-        if not sel_qno:
+        sel_key = st.session_state.get("selected_quote_key")
+        if not sel_key:
             st.info("Select a quote from the queue to view details.")
             return
-        sel = next((a for a in assessments if a["QuoteNo"] == sel_qno), None)
+        sel = next((a for a in assessments if _row_key(a) == sel_key), None)
         if not sel:
             st.warning("Quote not found.")
             return
@@ -488,7 +500,7 @@ def main():
         rec = sel["recommendation"]
         badge_color = {"RELEASE": "#2a9d8f", "REFER": "#e9c46a", "DECLINE": "#e76f51"}.get(rec, "#aaa")
         ref_id = get_or_create_log_entry(client, sel)
-        st.session_state[f"ref_id_{sel_qno}"] = ref_id
+        st.session_state[f"ref_id_{sel_key}"] = ref_id
 
         date_str = str(sel.get("DateEntered", ""))[:10]
         st.markdown(
@@ -755,7 +767,7 @@ def main():
                 for c in checks:
                     render_check(c)
 
-        det = detail.get(str(sel_qno), {})
+        det = detail.get(str(sel["QuoteNo"]), {})
         members = det.get("members", [])
         if members:
             with st.expander(f"05 · Member Data ({len(members)} members)", expanded=False):
@@ -813,7 +825,7 @@ def main():
                 + "</div>",
                 unsafe_allow_html=True,
             )
-            if st.button("Reopen decision", key=f"reopen_{sel_qno}"):
+            if st.button("Reopen decision", key=f"reopen_{sel_key}"):
                 try:
                     client.from_(T_LOG).update({
                         "reviewer_decision": None, "reviewer": None,
@@ -835,7 +847,7 @@ def main():
                 "Your name (for audit log)",
                 options=name_opts,
                 index=default_idx,
-                key=f"rname_{sel_qno}",
+                key=f"rname_{sel_key}",
             )
             if r_name and r_name != "— select your name —":
                 st.session_state["reviewer_name"] = r_name
@@ -845,15 +857,15 @@ def main():
             with st.expander("Override release premium (optional)", expanded=False):
                 oc = st.columns(2)
                 final_a = oc[0].number_input("Final annual premium (£)", min_value=0.0, step=100.0,
-                                              value=float(sug_a) if sug_a else 0.0, key=f"fa_{sel_qno}")
+                                              value=float(sug_a) if sug_a else 0.0, key=f"fa_{sel_key}")
                 final_m = oc[1].number_input("Final monthly premium (£)", min_value=0.0, step=10.0,
-                                              value=float(sug_m) if sug_m else 0.0, key=f"fm_{sel_qno}")
-                use_override_prem = st.checkbox("Use these values in the audit record", key=f"use_prem_{sel_qno}")
+                                              value=float(sug_m) if sug_m else 0.0, key=f"fm_{sel_key}")
+                use_override_prem = st.checkbox("Use these values in the audit record", key=f"use_prem_{sel_key}")
 
             # ── Override reason — always visible so it's available before the click ──
             override_reason = st.text_area(
                 "Override reason — required only if your decision differs from the system recommendation:",
-                key=f"reason_{sel_qno}",
+                key=f"reason_{sel_key}",
                 height=80,
                 placeholder="e.g. 'Senior UW authorised'; 'Additional broker context received'; ..."
             )
@@ -903,21 +915,21 @@ def main():
                     st.warning(f"⚠️ REFER recorded. Reference: **{ref_id}**")
                 else:
                     st.error(f"❌ DECLINE recorded. Reference: **{ref_id}**")
-                st.session_state.pop("selected_quote_no", None)
+                st.session_state.pop("selected_quote_key", None)
                 st.rerun()
 
             dcols = st.columns(3)
-            if dcols[0].button("✅ Confirm & Release", key=f"btn_release_{sel_qno}",
+            if dcols[0].button("✅ Confirm & Release", key=f"btn_release_{sel_key}",
                                use_container_width=True,
                                type="primary" if rec == "RELEASE" else "secondary"):
                 _attempt_decision("RELEASE")
 
-            if dcols[1].button("⚠️ Confirm & Refer", key=f"btn_refer_{sel_qno}",
+            if dcols[1].button("⚠️ Confirm & Refer", key=f"btn_refer_{sel_key}",
                                use_container_width=True,
                                type="primary" if rec == "REFER" else "secondary"):
                 _attempt_decision("REFER")
 
-            if dcols[2].button("❌ Confirm & Decline", key=f"btn_decline_{sel_qno}",
+            if dcols[2].button("❌ Confirm & Decline", key=f"btn_decline_{sel_key}",
                                use_container_width=True,
                                type="primary" if rec == "DECLINE" else "secondary"):
                 _attempt_decision("DECLINE")
