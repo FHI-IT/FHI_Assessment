@@ -278,14 +278,15 @@ def get_decided_quote_ids(client, quote_nos):
 
 
 def _row_key(a: dict) -> str:
-    """Unique per-row selection token for the queue.
-
-    QuoteVer is unique per quote version; QuoteNo can collide across versions
-    (a V2 quote gets a fresh QuoteNo that may match another quote's QuoteNo),
-    so it is only a fallback when QuoteVer is absent.
-    """
-    qv = a.get("QuoteVer", "")
-    return str(qv) if qv else str(a["QuoteNo"])
+    """Unique per queue row. Neither QuoteNo nor QuoteVer is reliably unique on
+    its own (CRM versioning/data quirk) — QuoteNos collide across versions, and
+    a QuoteVer like ``268574-2`` can appear under two different QuoteNos — but
+    their combination is. Sanitise for use as a Streamlit widget key."""
+    qno  = str(a.get("QuoteNo", "") or "")
+    qver = str(a.get("QuoteVer", "") or "")
+    raw  = f"{qno}|{qver}" if (qno or qver) else f"idx{id(a)}"
+    # Streamlit keys must be safe strings; replace anything non-alphanumeric
+    return "row_" + "".join(c if c.isalnum() else "_" for c in raw)
 
 
 def generate_reference_id(quote_no: int) -> str:
